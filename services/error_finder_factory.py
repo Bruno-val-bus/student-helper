@@ -1,14 +1,16 @@
 from langchain_community.chat_models import ChatOpenAI
 
-from .error_finders import ErrorFinder, OpenAIErrorFinderByModel, OpenAIErrorFinderBySchema
+from .error_finders import ErrorFinder, OpenAIErrorFinder, ChainWrapper, \
+    SchemaChainWrapper, ModelChainWrapper
 from dotenv import load_dotenv
 import os
+
+ERROR_FINDER_TYPE = "OpenAI"
+ERROR_FIND_METHOD = "model"
 
 
 def create_error_finder() -> ErrorFinder:
     # TODO move all vars to build config (except for api key)
-    ERROR_FINDER_TYPE = "OpenAI"
-    ERROR_FIND_METHOD = "model"
     GPT_TURBO = "gpt-3.5-turbo-0125"
     GPT_TURBO_INSTRUCT = "gpt-3.5-turbo-instruct"
     TEMPERATURE = 0
@@ -20,14 +22,20 @@ def create_error_finder() -> ErrorFinder:
                                         model_name=GPT_TURBO,
                                         openai_api_key=OPENAI_API_KEY)
     error_finder: ErrorFinder = None
+    chain_comps: ChainWrapper = initialize_chain_components()
     if ERROR_FINDER_TYPE == "OpenAI":
-        if ERROR_FIND_METHOD == "model":
-            error_finder = OpenAIErrorFinderByModel(chat_model)
-        elif ERROR_FIND_METHOD == "schema":
-            error_finder = OpenAIErrorFinderBySchema(chat_model)
+        error_finder = OpenAIErrorFinder(chat_model, chain_comps)
     elif ERROR_FINDER_TYPE == "local":
-        if ERROR_FIND_METHOD == "model":
-            pass
-        elif ERROR_FIND_METHOD == "schema":
-            pass
+        pass
     return error_finder
+
+
+def initialize_chain_components() -> ChainWrapper:
+    chain_comps: ChainWrapper = None
+    if ERROR_FIND_METHOD == "model":
+        chain_comps = ModelChainWrapper()
+    elif ERROR_FIND_METHOD == "schema":
+        chain_comps = SchemaChainWrapper()
+    chain_comps.create_output_parser()
+    chain_comps.create_prompt()
+    return chain_comps

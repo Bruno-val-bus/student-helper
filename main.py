@@ -1,4 +1,4 @@
-from error_finders.error_finder_factory import create_error_finder
+from services.error_finder_factory import create_error_finder
 
 
 def main():
