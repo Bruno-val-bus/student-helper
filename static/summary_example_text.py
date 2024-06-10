@@ -1,0 +1,6 @@
+
+afrikaans_OPENAI_doc = "OpenAI is 'n toonaangewende maatskappy in die veld van kunsmatige intelligensie (KI), gestig in 2015. Die maatskappy fokus op die ontwikkeling van gevorderde KI-tegnologieë, soos die ChatGPT-reeks, wat taalverwerking en geselskapvaardighede bevat. OpenAI streef daarna om KI veilig en voordelig te maak vir die hele mensdom deur baanbrekersnavorsing te doen en deursigtige praktyke te volg. Hul tegnologieë vind wye toepassings in verskeie sektore, insluitend gesondheidsorg, onderwys, en kliëntediens, waar hulle bydra tot verbeterde produktiwiteit en nuwe innovasies."
+
+afrikaans_OPENAI_summary_bad = "OpenAI is 'n maatskappy wat in 2015 gestig is en hul kantoor het 'n moderne ontwerp met groot vensters. Hulle werk saam met verskeie vennote en het 'n webwerf wat gereeld bygewerk word."
+
+afrikaans_OPENAI_summary_good = "OpenAI is 'n toonaangewende KI-maatskappy wat gevorderde tegnologie ontwikkel om taalverwerking en geselskapvaardighede te verbeter. Hulle streef daarna om KI veilig en voordelig te maak vir almal deur innovasie en deursigtige praktyke."
