@@ -35,7 +35,8 @@ class SummaryChainWrapper(ChainWrapper):
         format_instructions = self.output_parser.get_format_instructions()
 
         evaluation_prompt_template = """
-                You will be given one afrikaans summary written for an afrikaans article. Your task is to rate the summary on one metric.
+                You will be given one afrikaans summary written for an afrikaans article. Your task is to rate the 
+                summary on one metric.
                 Please make sure you read and understand these instructions very carefully. 
                 Please keep this document open while reviewing, and refer to it as needed.
 
@@ -57,17 +58,9 @@ class SummaryChainWrapper(ChainWrapper):
 
                 {summary}
 
-                Please provide the evaluation result in english and in the following JSON format:
+                Please provide the evaluation result in english and in the following format instructions:
 
-                {{
-                  "evaluations": [
-                    {{
-                      "metric": "{metric_name}",
-                      "score": <score>,
-                      "reason": "<description>"
-                    }}
-                  ]
-                }}
+                \n{format_instructions}\n
                 
                 """
 
@@ -94,8 +87,8 @@ class OpenAISummaryEvaluator(SummaryEvaluator):
         :param summary:
         :return:
         """
-        evaluation = {}
 
+        evaluation = {}
         for eval_type, (criteria, steps) in evaluation_metrics.items():
             chain = self._chain_comps.summary_evaluator_prompt | self._chat_model | self._chain_comps.output_parser
             evaluation_result = chain.invoke({"criteria": criteria, "document": document, "metric_name": eval_type,

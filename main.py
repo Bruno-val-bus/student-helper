@@ -1,6 +1,5 @@
-from services.error_finder_factory import create_error_finder
+#from services.error_finder_factory import create_error_finder
 from services.summary_evaluator_factory import create_summary_evaluator
-from services.summary_evaluators import SummaryChainWrapper
 from static.summary_example_text import (afrikaans_OPENAI_summary_bad, afrikaans_OPENAI_doc,
                                          afrikaans_OPENAI_summary_good)
 from static.summary_metrics import RELEVANCY_SCORE_CRITERIA, RELEVANCY_SCORE_STEPS, COHERENCE_SCORE_CRITERIA, \
