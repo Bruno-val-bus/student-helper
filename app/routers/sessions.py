@@ -2,8 +2,8 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from app.models.pydantic.sessions import Session, Recording, RecordingStatus, RecordingType
 from app.models.repositories.recording import RecordingRepo
 from app.models.repositories.session import SessionRepo
-import services.error_finder_factory as processor_factory
-from pydantic_models.error import Evaluation
+from services.error_finder_factory import TextEvaluatorFactory
+from langchain.pydantic_v1 import BaseModel
 
 app = FastAPI()
 
@@ -88,8 +88,8 @@ async def process_recording(recording_id: int) -> Recording:
         raise HTTPException(status_code=500,
                             detail=f"Cannot process audio because of current status {recording.status} of recording id"
                                    f": {recording_id}")
-
-    processor = processor_factory.get_processor(recording.type)
+    txt_proc_fact = TextEvaluatorFactory(recording.type)
+    text_processor = txt_proc_fact.get_evaluator()
     # TODO logic with processor: async processor.process(recording: Recording, recording_repo: RecordingRepo)
     # update status to PROCESSING_AUDIO
     recording_status = RecordingStatus.PROCESSING_AUDIO
@@ -98,7 +98,7 @@ async def process_recording(recording_id: int) -> Recording:
 
 
 @app.get("recording/{recording_id}/evaluation")
-async def get_recording_evaluation(recording_id: int) -> Evaluation:
+async def get_recording_evaluation(recording_id: int) -> BaseModel:
     try:
         recording: Recording = recording_repo.get_recording(recording_id)
     except Exception as e:
