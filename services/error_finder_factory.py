@@ -1,5 +1,7 @@
 from langchain_community.chat_models import ChatOpenAI
+from langchain_community.llms import LlamaCpp
 
+from app.models.pydantic.sessions import RecordingType
 from .error_finders import ErrorFinder, OpenAIErrorFinder, ChainWrapper, \
     SchemaChainWrapper, ModelChainWrapper
 from dotenv import load_dotenv
@@ -7,6 +9,15 @@ import os
 
 ERROR_FINDER_TYPE = "OpenAI"
 ERROR_FIND_METHOD = "model"
+
+
+def get_processor(recording_type: RecordingType):
+    if recording_type == RecordingType.COMPREHENSION:
+        pass
+    elif recording_type == RecordingType.LANGUAGE_PRODUCTION:
+        pass
+    else:
+        NotImplementedError
 
 
 def create_error_finder() -> ErrorFinder:

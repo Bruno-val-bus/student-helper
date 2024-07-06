@@ -90,7 +90,7 @@ class OpenAIErrorFinder(ErrorFinder):
         """
         Finds the (grammatical) error in the text and returns it ina structured format along with a suggestion for correction
         :param sentence:
-        :return:
+        :return: Errors (pydantic model)
         """
         chain = self._chain_comps.grammatical_errors_prompt | self._chat_model | self._chain_comps.output_parser
         errors = chain.invoke({"sentence": sentence})
