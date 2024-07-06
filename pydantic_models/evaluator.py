@@ -10,5 +10,5 @@ class SummaryEvaluationItem(BaseModel):
 
 
 class SummaryEvaluations(BaseModel):
-    evaluations: List[SummaryEvaluationItem]
+    evaluations: List[SummaryEvaluationItem] = []
 

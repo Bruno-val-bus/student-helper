@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 
-from pydantic_models.evaluator import SummaryEvaluations
+from pydantic_models.evaluator import SummaryEvaluations, SummaryEvaluationItem
 from static.summary_metrics import evaluation_metrics
 
 
@@ -73,7 +72,7 @@ class SummaryChainWrapper(ChainWrapper):
     def create_output_parser(self):
         """Returns output parser"""
         # The parser that will look for the LLM output in my schema and return it back to me
-        self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluations)
+        self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
 
 
 class OpenAISummaryEvaluator(SummaryEvaluator):
@@ -81,18 +80,18 @@ class OpenAISummaryEvaluator(SummaryEvaluator):
         self._chat_model: ChatOpenAI = chat_model
         self._chain_comps = chain_comps
 
-    def evaluate_text(self, document: str, summary: str) -> Any:
+    def evaluate_text(self, document: str, summary: str) -> SummaryEvaluations:
         """
         :param document:
         :param summary:
         :return:
         """
 
-        evaluation = {}
+        evaluation: SummaryEvaluations = SummaryEvaluations()
         for eval_type, (criteria, steps) in evaluation_metrics.items():
             chain = self._chain_comps.summary_evaluator_prompt | self._chat_model | self._chain_comps.output_parser
             evaluation_result = chain.invoke({"criteria": criteria, "document": document, "metric_name": eval_type,
                                               "steps": steps, "summary": summary})
-            evaluation[eval_type] = evaluation_result
+            evaluation.evaluations.append(evaluation_result)
 
         return evaluation
