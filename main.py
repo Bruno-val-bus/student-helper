@@ -6,7 +6,7 @@ from app.models.pydantic.sessions import RecordingType
 
 
 def main_errors():
-    factory = TextEvaluatorFactory(RecordingType().LANGUAGE_PRODUCTION)
+    factory = TextEvaluatorFactory(RecordingType.LANGUAGE_PRODUCTION)
     evaluator = factory.get_evaluator()
     sentence = "After went to the store, she buyed some apples and oranges, but forgot to brings her wallet so she couldn't pays for them."
     recording = Recording()
@@ -15,7 +15,7 @@ def main_errors():
 
 
 def main_summary():
-    factory = TextEvaluatorFactory(RecordingType().COMPREHENSION)
+    factory = TextEvaluatorFactory(RecordingType.COMPREHENSION)
     evaluator = factory.get_evaluator()
     summary = afrikaans_OPENAI_summary_good
     recording = Recording()

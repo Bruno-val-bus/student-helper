@@ -23,14 +23,14 @@ class TextEvaluatorFactory:
     def get_evaluator(self) -> TextEvaluator:
         llm = self.get_llm()
         processor: TextEvaluator
-        if self._recording_type == RecordingType().COMPREHENSION:
+        if self._recording_type == RecordingType.COMPREHENSION:
             chain_components = SummaryChainWrapper()
             chain_components.create_output_parser()
             chain_components.create_prompt()
             # TODO: document should be defined by user after defining RecordingType.COMPREHENSION in frontend
             document = get_testing_document()
             processor: SummaryEvaluator = SummaryEvaluator(llm, chain_components, document)
-        elif self._recording_type == RecordingType().LANGUAGE_PRODUCTION:
+        elif self._recording_type == RecordingType.LANGUAGE_PRODUCTION:
             chain_components = GrammaticalErrorsChainWrapper()
             chain_components.create_output_parser()
             chain_components.create_prompt()

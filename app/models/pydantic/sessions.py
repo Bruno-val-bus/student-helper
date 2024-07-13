@@ -2,7 +2,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-class RecordingType(BaseModel):
+class RecordingType:
     COMPREHENSION: str = "COMPREHENSION"
     LANGUAGE_PRODUCTION: str = "LANGUAGE_PRODUCTION"
     PRESENTATION: str = "PRESENTATION"
@@ -19,7 +19,7 @@ class RecordingStatus(BaseModel):
 class Recording(BaseModel):
     id: Optional[int] = None
     session_id: Optional[int] = None
-    type: Optional[RecordingType] = None
+    type: Optional[str] = None
     start: Optional[str] = None
     end: Optional[str] = None
     audio_file_path: Optional[str] = None

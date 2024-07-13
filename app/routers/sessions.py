@@ -89,8 +89,9 @@ async def process_recording(recording_id: int) -> Recording:
                             detail=f"Cannot process audio because of current status {recording.status} of recording id"
                                    f": {recording_id}")
     txt_proc_fact = TextEvaluatorFactory(recording.type)
-    text_processor = txt_proc_fact.get_evaluator()
+    evaluator = txt_proc_fact.get_evaluator()
     # TODO logic with processor: async processor.process(recording: Recording, recording_repo: RecordingRepo)
+    #  recording.evaluation = evaluator.evaluate(summary)
     # update status to PROCESSING_AUDIO
     recording_status = RecordingStatus.PROCESSING_AUDIO
     recording = recording_repo.patch_recording_attributes(recording.id, status=recording_status)
