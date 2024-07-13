@@ -1,7 +1,7 @@
 from static.summary_example_text import afrikaans_OPENAI_doc
 from langchain_core.language_models import BaseLanguageModel
 from langchain_community.chat_models import ChatOpenAI
-from langchain_community.llms import LlamaCpp
+from langchain_community.llms import ollama
 
 from app.models.pydantic.sessions import RecordingType
 from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, SummaryEvaluator
@@ -61,8 +61,7 @@ class TextEvaluatorFactory:
                 # TODO implement local model for OpenAI
                 pass
             elif MODEL_PROVIDER == "LlamaCpp":
-                # TODO implement local model for LlamaCpp
-                pass
+                llm = ollama.Ollama(model="llama3:8b")
             else:
                 NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
         return llm

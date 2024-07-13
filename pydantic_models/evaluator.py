@@ -3,14 +3,13 @@ from typing import Optional, List
 
 
 class SummaryEvaluationItem(BaseModel):
-    metric: Optional[str] = Field(None, description="The Metric used score")
-    score: Optional[int] = Field(None,
-                                 description="The score for the summary evaluation metric (e.g., relevance, coherence), if applicable.")
-    reason: Optional[str] = Field(None, description="The description for the given score")
+    metric: str = Field(..., description="The name of the metric used")
+    score: int = Field(..., description="The score given based on the metric")
+    reason: Optional[str] = Field(None, description="The provided reason for the given score")
 
 
 class SummaryEvaluations(BaseModel):
-    evaluations: List[SummaryEvaluationItem] = []
+    evaluations: List[SummaryEvaluationItem] = [] #Field(..., description="A list of scores of all considered evaluation metrics for the provided summary")
 
 
 class ErrorItem(BaseModel):

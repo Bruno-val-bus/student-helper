@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.language_models import BaseLanguageModel
+from langchain_community.llms import Ollama
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
@@ -83,10 +84,13 @@ class SummaryChainWrapper(ChainWrapper):
         format_instructions = self.output_parser.get_format_instructions()
 
         evaluation_prompt_template = """
-                You will be given one afrikaans summary written for an afrikaans article. Your task is to rate the 
+                You will be given one afrikaans summary written for an AFRIKAANS article. Your task is to rate the 
                 summary on one metric.
                 Please make sure you read and understand these instructions very carefully. 
                 Please keep this document open while reviewing, and refer to it as needed.
+                
+                Metric Name:
+                {metric_name}
 
                 Evaluation Criteria:
 
@@ -96,8 +100,6 @@ class SummaryChainWrapper(ChainWrapper):
 
                 {steps}
 
-                Example:
-
                 Source Text:
 
                 {document}
@@ -105,8 +107,8 @@ class SummaryChainWrapper(ChainWrapper):
                 Summary:
 
                 {summary}
-
-                Please provide the evaluation result in english and in the following format instructions:
+                
+                Only provide the MANDATORY output format and no other text:
 
                 \n{format_instructions}\n
 
@@ -155,7 +157,7 @@ class GrammaticalEvaluator(TextEvaluator):
 
 
 class SummaryEvaluator(TextEvaluator):
-    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper, document: str):
+    def __init__(self, llm: Ollama, chain_comps: ChainWrapper, document: str):
         super().__init__(llm, chain_comps)
         self._document: str = document
 
