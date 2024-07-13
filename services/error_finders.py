@@ -1,8 +1,7 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
-from langchain_community.chat_models import ChatOpenAI
+from langchain_core.language_models import BaseLanguageModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
@@ -126,14 +125,23 @@ class SummaryChainWrapper(ChainWrapper):
 
 
 class TextEvaluator(ABC):
+    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
+        self._llm: BaseLanguageModel = llm
+        self._chain_comps = chain_comps
+
+    def set_llm(self, llm):
+        self._llm = llm
+
+    def set_chain_comps(self, chain_comps: ChainWrapper):
+        self._chain_comps = chain_comps
+
     def evaluate(self, text) -> BaseModel:
         ...
 
 
 class GrammaticalEvaluator(TextEvaluator):
-    def __init__(self, chat_model: ChatOpenAI, chain_comps: ChainWrapper):
-        self._chat_model: ChatOpenAI = chat_model
-        self._chain_comps = chain_comps
+    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
+        super().__init__(llm, chain_comps)
 
     def evaluate(self, text: str) -> Errors:
         """
@@ -141,16 +149,15 @@ class GrammaticalEvaluator(TextEvaluator):
         :param text:
         :return: Errors (BaseModel)
         """
-        chain = self._chain_comps.prompt_template | self._chat_model | self._chain_comps.output_parser
+        chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
         errors: Errors = chain.invoke({"sentence": text})
         return errors
 
 
 class SummaryEvaluator(TextEvaluator):
-    def __init__(self, chat_model, chain_comps: ChainWrapper, document: str):
-        self.document: str = document
-        self._chat_model = chat_model
-        self._chain_comps = chain_comps
+    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper, document: str):
+        super().__init__(llm, chain_comps)
+        self._document: str = document
 
     def evaluate(self, text: str) -> SummaryEvaluations:
         """
@@ -161,9 +168,12 @@ class SummaryEvaluator(TextEvaluator):
 
         evaluation: SummaryEvaluations = SummaryEvaluations()
         for eval_type, (criteria, steps) in evaluation_metrics.items():
-            chain = self._chain_comps.prompt_template | self._chat_model | self._chain_comps.output_parser
-            evaluation_result = chain.invoke({"criteria": criteria, "document": self.document, "metric_name": eval_type,
+            chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
+            evaluation_result = chain.invoke({"criteria": criteria, "document": self._document, "metric_name": eval_type,
                                               "steps": steps, "summary": text})
             evaluation.evaluations.append(evaluation_result)
 
         return evaluation
+
+    def set_document(self, document: str):
+        self._document = document

@@ -1,5 +1,5 @@
-from typing import Any
 from static.summary_example_text import afrikaans_OPENAI_doc
+from langchain_core.language_models import BaseLanguageModel
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.llms import ollama
 
@@ -8,7 +8,11 @@ from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalError
 from dotenv import load_dotenv
 import os
 
-ERROR_FINDER_TYPE = "OpenAI"
+# TODO move all vars to build config
+MODEL_PROVIDER = "OpenAI"
+LOCAL_MODEL = False
+MODEL_NAME = "gpt-3.5-turbo-0125" # "gpt-3.5-turbo-instruct"
+TEMPERATURE = 0
 
 
 class TextEvaluatorFactory:
@@ -17,43 +21,50 @@ class TextEvaluatorFactory:
         self._recording_type: str = recording_type
 
     def get_evaluator(self) -> TextEvaluator:
-        chat_model = self.get_chat_model()
-        processor: TextEvaluator = None
+        llm = self.get_llm()
+        processor: TextEvaluator
         if self._recording_type == RecordingType().COMPREHENSION:
             chain_components = SummaryChainWrapper()
             chain_components.create_output_parser()
             chain_components.create_prompt()
             # TODO: document should be defined by user after defining RecordingType.COMPREHENSION in frontend
             document = get_testing_document()
-            processor = SummaryEvaluator(chat_model, chain_components, document)
+            processor: SummaryEvaluator = SummaryEvaluator(llm, chain_components, document)
         elif self._recording_type == RecordingType().LANGUAGE_PRODUCTION:
             chain_components = GrammaticalErrorsChainWrapper()
             chain_components.create_output_parser()
             chain_components.create_prompt()
-            processor = GrammaticalEvaluator(chat_model, chain_components)
+            processor: GrammaticalEvaluator = GrammaticalEvaluator(llm, chain_components)
         else:
-            NotImplementedError
+            raise NotImplementedError(f"{self._recording_type} has not been implemented yet")
 
         return processor
 
     @staticmethod
-    def get_chat_model() -> Any:
-        # TODO move all vars to build config (except for api key)
-        GPT_TURBO = "gpt-3.5-turbo-0125"
-        GPT_TURBO_INSTRUCT = "gpt-3.5-turbo-instruct"
-        TEMPERATURE = 0
-
-        env_path = os.path.join(os.getcwd(), ".env")
-        load_dotenv(env_path)
-        chat_model = None
-        if ERROR_FINDER_TYPE == "OpenAI":
-            OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-            chat_model: ChatOpenAI = ChatOpenAI(temperature=TEMPERATURE,
-                                                model_name=GPT_TURBO,
-                                                openai_api_key=OPENAI_API_KEY)
-        elif ERROR_FINDER_TYPE == "local":
-            chat_model = ollama.Ollama(model="llama3:8b")
-        return chat_model
+    def get_llm() -> BaseLanguageModel:
+        llm = None
+        if not LOCAL_MODEL:
+            if MODEL_PROVIDER == "OpenAI":
+                env_path = os.path.join(os.getcwd(), ".env")
+                load_dotenv(env_path)
+                OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
+                llm: ChatOpenAI = ChatOpenAI(temperature=TEMPERATURE,
+                                             model_name=MODEL_NAME,
+                                             openai_api_key=OPENAI_API_KEY)
+            elif MODEL_PROVIDER == "LlamaCpp":
+                # TODO implement remote model for LlamaCpp
+                pass
+            else:
+                NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported remotely.")
+        else:
+            if MODEL_PROVIDER == "OpenAI":
+                # TODO implement local model for OpenAI
+                pass
+            elif MODEL_PROVIDER == "LlamaCpp":
+                llm = ollama.Ollama(model="llama3:8b")
+            else:
+                NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
+        return llm
 
 
 def get_testing_document():
