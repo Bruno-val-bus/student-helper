@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.language_models import BaseLanguageModel
-from langchain_community.llms import Ollama
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
@@ -157,7 +156,7 @@ class GrammaticalEvaluator(TextEvaluator):
 
 
 class SummaryEvaluator(TextEvaluator):
-    def __init__(self, llm: Ollama, chain_comps: ChainWrapper, document: str):
+    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper, document: str):
         super().__init__(llm, chain_comps)
         self._document: str = document
 

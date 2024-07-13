@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 import os
 
 # TODO move all vars to build config
-MODEL_PROVIDER = "OpenAI"
+MODEL_PROVIDER = "OpenAI"  # "OpenAI", "Ollama"
 LOCAL_MODEL = False
-MODEL_NAME = "gpt-3.5-turbo-0125" # "gpt-3.5-turbo-instruct"
+MODEL_NAME = "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
 TEMPERATURE = 0
 
 
@@ -60,8 +60,8 @@ class TextEvaluatorFactory:
             if MODEL_PROVIDER == "OpenAI":
                 # TODO implement local model for OpenAI
                 pass
-            elif MODEL_PROVIDER == "LlamaCpp":
-                llm = ollama.Ollama(model="llama3:8b")
+            elif MODEL_PROVIDER == "Ollama":
+                llm = ollama.Ollama(model=MODEL_NAME)
             else:
                 NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
         return llm
