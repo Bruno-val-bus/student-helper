@@ -5,7 +5,7 @@
 RELEVANCY_SCORE_CRITERIA = """
 Relevance(1-5) - selection of important content from the source. \
 The summary should include only important information from the source document. \
-Annotators were instructed to penalize summaries which contained redundancies and excess information.
+Penalize summaries which contain redundancies and excess information.
 """
 
 RELEVANCY_SCORE_STEPS = """
@@ -62,7 +62,7 @@ Read the summary and evaluate its fluency based on the given criteria. Assign a 
 
 evaluation_metrics = {
     "Relevance": (RELEVANCY_SCORE_CRITERIA, RELEVANCY_SCORE_STEPS),
-    "Coherence": (COHERENCE_SCORE_CRITERIA, COHERENCE_SCORE_STEPS),
-    "Consistency": (CONSISTENCY_SCORE_CRITERIA, CONSISTENCY_SCORE_STEPS),
-    "Fluency": (FLUENCY_SCORE_CRITERIA, FLUENCY_SCORE_STEPS),
+    #"Coherence": (COHERENCE_SCORE_CRITERIA, COHERENCE_SCORE_STEPS),
+    #"Consistency": (CONSISTENCY_SCORE_CRITERIA, CONSISTENCY_SCORE_STEPS),
+    #"Fluency": (FLUENCY_SCORE_CRITERIA, FLUENCY_SCORE_STEPS),
 }
