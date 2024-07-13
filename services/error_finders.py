@@ -147,9 +147,9 @@ class GrammaticalEvaluator(TextEvaluator):
 
 
 class SummaryEvaluator(TextEvaluator):
-    def __init__(self, chat_model: ChatOpenAI, chain_comps: ChainWrapper, document: str):
+    def __init__(self, chat_model, chain_comps: ChainWrapper, document: str):
         self.document: str = document
-        self._chat_model: ChatOpenAI = chat_model
+        self._chat_model = chat_model
         self._chain_comps = chain_comps
 
     def evaluate(self, text: str) -> SummaryEvaluations:

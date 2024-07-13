@@ -1,7 +1,7 @@
 from typing import Any
 from static.summary_example_text import afrikaans_OPENAI_doc
 from langchain_community.chat_models import ChatOpenAI
-from langchain_community.llms import LlamaCpp
+from langchain_community.llms import ollama
 
 from app.models.pydantic.sessions import RecordingType
 from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, SummaryEvaluator
@@ -45,14 +45,14 @@ class TextEvaluatorFactory:
 
         env_path = os.path.join(os.getcwd(), ".env")
         load_dotenv(env_path)
-        OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
         chat_model = None
         if ERROR_FINDER_TYPE == "OpenAI":
+            OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
             chat_model: ChatOpenAI = ChatOpenAI(temperature=TEMPERATURE,
                                                 model_name=GPT_TURBO,
                                                 openai_api_key=OPENAI_API_KEY)
         elif ERROR_FINDER_TYPE == "local":
-            pass
+            chat_model = ollama.Ollama(model="llama3:8b")
         return chat_model
 
 
