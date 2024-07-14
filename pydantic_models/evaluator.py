@@ -3,9 +3,9 @@ from typing import Optional, List
 
 
 class SummaryEvaluationItem(BaseModel):
-    metric: str = Field(..., description="The name of the metric used")
-    score: int = Field(..., description="The score given based on the metric")
-    reason: Optional[str] = Field(None, description="The provided reason for the given score")
+    metric: str = Field(..., description="Name of the metric")
+    score: int = Field(..., description="The given score out of 10 (0 extremely poor and 10 extremely good)")
+    reason: Optional[str] = Field(None, description="The reason for the score in less than 15 words")
 
 
 class SummaryEvaluations(BaseModel):
