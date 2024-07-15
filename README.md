@@ -17,3 +17,7 @@
   `python -m pip-sync requirements.txt`
 - Deactivate virtual environment
   `.venv/Scripts/deactivate`
+  
+# Set OpenAi Key
+- Create .env file in root
+- Write `OPENAI_API_KEY = "my-key"`
