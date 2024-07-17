@@ -59,10 +59,13 @@ Fluency(1-3): the quality of the summary in terms of grammar, spelling, punctuat
 FLUENCY_SCORE_STEPS = """
 Read the summary and evaluate its fluency based on the given criteria. Assign a fluency score from 1 to 3.
 """
-
+RELEVANCE = "Relevance"
+COHERENCE = "Coherence"
+CONSISTENCY = "Consistency"
+FLUENCY = "Fluency"
 evaluation_metrics = {
-    "Relevance": (RELEVANCY_SCORE_CRITERIA, RELEVANCY_SCORE_STEPS),
-    "Coherence": (COHERENCE_SCORE_CRITERIA, COHERENCE_SCORE_STEPS),
-    "Consistency": (CONSISTENCY_SCORE_CRITERIA, CONSISTENCY_SCORE_STEPS),
-    "Fluency": (FLUENCY_SCORE_CRITERIA, FLUENCY_SCORE_STEPS),
+    RELEVANCE: (RELEVANCY_SCORE_CRITERIA, RELEVANCY_SCORE_STEPS),
+    COHERENCE: (COHERENCE_SCORE_CRITERIA, COHERENCE_SCORE_STEPS),
+    CONSISTENCY: (CONSISTENCY_SCORE_CRITERIA, CONSISTENCY_SCORE_STEPS),
+    FLUENCY: (FLUENCY_SCORE_CRITERIA, FLUENCY_SCORE_STEPS),
 }
