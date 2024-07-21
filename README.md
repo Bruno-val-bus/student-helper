@@ -32,7 +32,8 @@ and also for building and deploying the entire system.
 
 ### Getting Started
 
-To build and run the Docker containers for the models and services, follow these steps:
+To build and run the Docker containers for the models and services,
+you will need [docker](https://docs.docker.com/engine/install/)
 
 ### Docker Compose File
 
