@@ -107,8 +107,8 @@ class SummaryChainWrapper(ChainWrapper):
 
                 {summary}
                 
-                Only provide the MANDATORY output format and no other text:
-
+                Provide your evaluation in the following JSON format:
+                
                 \n{format_instructions}\n
 
                 """
@@ -122,7 +122,16 @@ class SummaryChainWrapper(ChainWrapper):
     def create_output_parser(self):
         """Creates pydantic model output parser with SummaryEvaluationItem"""
         # The parser that will look for the LLM output in my schema and return it back to me
-        self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
+        # self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
+        response_schemas = [
+            ResponseSchema(name="metric", description="Name of the metric"),
+            ResponseSchema(
+                name="score",
+                description="The given score out of 10 (0 extremely poor and 10 extremely good)",
+            ),
+            ResponseSchema(name="reason", description="The reason for the score in less than 15 words")
+        ]
+        self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
 
 
 class TextEvaluator(ABC):
