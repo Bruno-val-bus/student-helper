@@ -1,4 +1,3 @@
-import logging
 from static.summary_example_text import afrikaans_OPENAI_doc
 from langchain_core.language_models import BaseLanguageModel
 from langchain_community.chat_models import ChatOpenAI
@@ -15,7 +14,7 @@ LOCAL_MODEL = False
 MODEL_NAME = "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
 TEMPERATURE = 0
 
-# Get environment variables
+# Get variables from env file #TODO: create a config.yaml file to set variables
 OLLAMA_HOST = os.getenv('OLLAMA_HOST')
 OLLAMA_PORT = os.getenv('OLLAMA_PORT')
 
