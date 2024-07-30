@@ -1,3 +1,4 @@
+import logging
 from static.summary_example_text import afrikaans_OPENAI_doc
 from langchain_core.language_models import BaseLanguageModel
 from langchain_community.chat_models import ChatOpenAI
@@ -65,7 +66,6 @@ class TextEvaluatorFactory:
                 # TODO implement local model for OpenAI
                 pass
             elif MODEL_PROVIDER == "Ollama":
-                print("FOOOOOOOD")
                 llm = ollama.Ollama(model=MODEL_NAME, base_url= f'http://{OLLAMA_HOST}:{OLLAMA_PORT}')
             else:
                 NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
