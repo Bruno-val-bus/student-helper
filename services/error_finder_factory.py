@@ -14,6 +14,10 @@ LOCAL_MODEL = False
 MODEL_NAME = "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
 TEMPERATURE = 0
 
+# Get environment variables
+OLLAMA_HOST = os.getenv('OLLAMA_HOST')
+OLLAMA_PORT = os.getenv('OLLAMA_PORT')
+
 
 class TextEvaluatorFactory:
 
@@ -61,7 +65,8 @@ class TextEvaluatorFactory:
                 # TODO implement local model for OpenAI
                 pass
             elif MODEL_PROVIDER == "Ollama":
-                llm = ollama.Ollama(model=MODEL_NAME)
+                print("FOOOOOOOD")
+                llm = ollama.Ollama(model=MODEL_NAME, base_url= f'http://{OLLAMA_HOST}:{OLLAMA_PORT}')
             else:
                 NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
         return llm
