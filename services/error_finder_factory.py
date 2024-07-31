@@ -1,24 +1,22 @@
-from static.summary_example_text import afrikaans_OPENAI_doc
+import os
+from dotenv import load_dotenv
 from langchain_core.language_models import BaseLanguageModel
 from langchain_community.chat_models import ChatOpenAI
 from langchain_community.llms import ollama
 
+from static.summary_example_text import afrikaans_OPENAI_doc
+
 from app.models.pydantic.sessions import RecordingType
 from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, SummaryEvaluator
-from dotenv import load_dotenv
-import os
 
-# TODO move all vars to build config
-MODEL_PROVIDER = "OpenAI"  # "OpenAI", "Ollama"
-LOCAL_MODEL = False
-MODEL_NAME = "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
-TEMPERATURE = 0
+from configs.configurator import ConfigInterface
 
 
 class TextEvaluatorFactory:
 
-    def __init__(self, recording_type: str):
+    def __init__(self, recording_type: str, config: ConfigInterface):
         self._recording_type: str = recording_type
+        self.config = config
 
     def get_evaluator(self) -> TextEvaluator:
         llm = self.get_llm()
@@ -40,31 +38,24 @@ class TextEvaluatorFactory:
 
         return processor
 
-    @staticmethod
-    def get_llm() -> BaseLanguageModel:
+    def get_llm(self) -> BaseLanguageModel:
         llm = None
-        if not LOCAL_MODEL:
-            if MODEL_PROVIDER == "OpenAI":
-                env_path = os.path.join(os.getcwd(), ".env")
-                load_dotenv(env_path)
-                OPENAI_API_KEY = os.environ["OPENAI_API_KEY"]
-                llm: ChatOpenAI = ChatOpenAI(temperature=TEMPERATURE,
-                                             model_name=MODEL_NAME,
-                                             openai_api_key=OPENAI_API_KEY)
-            elif MODEL_PROVIDER == "LlamaCpp":
-                # TODO implement remote model for LlamaCpp
-                pass
-            else:
-                NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported remotely.")
-        else:
-            if MODEL_PROVIDER == "OpenAI":
-                # TODO implement local model for OpenAI
-                pass
-            elif MODEL_PROVIDER == "Ollama":
-                llm = ollama.Ollama(model=MODEL_NAME)
-            else:
-                NotImplementedError(f"Model provider {MODEL_PROVIDER} not supported locally.")
-        return llm
+        # Use predefined config to choose what LLM to use
+        if self.config.get_llm_setup_name() == "ONLINE_OPENAI_GPT3":
+            llm_setup = self.config.get_llm_setup_params()
+            env_path = os.path.join(os.getcwd(), ".env")
+            load_dotenv(env_path)
+            llm: ChatOpenAI = ChatOpenAI(temperature=llm_setup['TEMPERATURE'],
+                                         model_name=llm_setup['MODEL_NAME'],
+                                         openai_api_key=os.environ["OPENAI_API_KEY"])
+            return llm
+
+        elif self.config.get_llm_setup_name() == "LOCAL_OLLAMA_LLAMA3":
+            llm_setup = self.config.get_llm_setup_params()
+            llm = ollama.Ollama(model=llm_setup['MODEL_NAME'])
+            return llm
+
+        raise NotImplementedError(f"Model setup {self.config.get_llm_setup_name()} is not supported.")
 
 
 def get_testing_document():

@@ -4,15 +4,15 @@ from abc import ABC, abstractmethod
 
 
 @dataclass
+@abstractmethod
 class ConfigInterface(ABC):
-    @abstractmethod
-    def get_llm_setup_name(self):
-        pass
-    @abstractmethod
-    def get_llm_setup_params(self):
+    def _load_yaml_configs(self):
         pass
 
-    def _load_yaml_configs(self):
+    def get_llm_setup_name(self):
+        pass
+
+    def get_llm_setup_params(self):
         pass
 
 
@@ -36,7 +36,6 @@ class Config(ConfigInterface):
             print("Error trying to open the configuration file")
 
     # getters
-
     def get_llm_setup_name(self):
         return self._setup_name
 
