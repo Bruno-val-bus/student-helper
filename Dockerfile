@@ -12,4 +12,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the directory contents into the container at /app
 COPY . .
 
+ENV PYTHONUNBUFFERED=1
+
 CMD ["python", "./main.py"]

@@ -24,6 +24,21 @@ services:
     expose:
       - "11434"
 
+  faster-whisper-server-cpu:
+    image: fedirz/faster-whisper-server:latest-cpu
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    networks:
+      - student-helper-net
+    develop:
+      watch:
+        - path: faster_whisper_server
+          action: rebuild
+
+
 networks:
   student-helper-net:
     driver: bridge
