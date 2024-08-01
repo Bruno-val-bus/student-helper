@@ -1,4 +1,4 @@
-import os.path
+import logging
 
 from app.models.pydantic.sessions import Recording
 from services.error_finder_factory import TextEvaluatorFactory
@@ -19,8 +19,13 @@ def main_errors():
 
 
 def main_summary():
-    config = Config("config.yaml", "LOCAL_OLLAMA_LLAMA3")
-    factory = TextEvaluatorFactory(RecordingType.COMPREHENSION, config)
+    setup_name = "LOCAL_OLLAMA_LLAMA3"
+    recording_type = RecordingType.COMPREHENSION
+    config = Config("config.yaml", setup_name)
+    # init module logger (after config)
+    logger = logging.getLogger(__name__)
+    logger.info(f'Started evaluation for %s using the %s setup', recording_type, setup_name)
+    factory = TextEvaluatorFactory(recording_type, config)
     evaluator = factory.get_evaluator()
     summary = afrikaans_OPENAI_summary_good
     recording = Recording()
@@ -30,5 +35,5 @@ def main_summary():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main_errors()
+    #main_errors()
     main_summary()

@@ -18,3 +18,35 @@ llm:
     MODEL_NAME: "llama3:8b"
     OLLAMA_HOST: "ollama"
     OLLAMA_PORT: 11434
+
+logging:
+  version: 1
+  disable_existing_loggers: False
+
+  formatters:
+    simple:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+
+    colored:
+      (): configs.configurator.ColoredFormatter
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: colored
+      stream: ext://sys.stdout
+
+    file:
+      class: logging.FileHandler
+      level: INFO
+      formatter: simple
+      filename: student_helper_logs.log
+      mode: w # a (append logs)
+
+  root:
+    level: DEBUG
+    handlers: [ console, file ]
