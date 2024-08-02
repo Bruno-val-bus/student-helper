@@ -43,7 +43,7 @@ class TextEvaluatorFactory:
                 raise NotImplementedError(f"{self._recording_type} has not been implemented yet")
 
         except NotImplementedError as e:
-            logger.exception("An error occured: %s", e)
+            logger.exception("An error occurred: %s", e)
 
         return processor
 
@@ -60,7 +60,7 @@ class TextEvaluatorFactory:
                                              openai_api_key=os.environ["OPENAI_API_KEY"])
                 return llm
 
-            elif self.config.get_llm_setup_name() == "LOCAL_OLLAMA_LLAMA":
+            elif self.config.get_llm_setup_name() == "LOCAL_OLLAMA_LLAMA3":
                 llm_setup = self.config.get_llm_setup_params()
                 llm = ollama.Ollama(model=llm_setup['MODEL_NAME'])
                 return llm
@@ -69,7 +69,7 @@ class TextEvaluatorFactory:
                 raise NotImplementedError(f"Model setup {self.config.get_llm_setup_name()} is not supported.")
 
         except NotImplementedError as e:
-            logger.exception("An error occured: %s", e)
+            logger.exception("An error occurred: %s", e)
 
 
 def get_testing_document():

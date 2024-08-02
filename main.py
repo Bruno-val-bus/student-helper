@@ -35,5 +35,5 @@ def main_summary():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #main_errors()
+    main_errors()
     main_summary()
