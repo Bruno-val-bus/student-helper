@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
@@ -8,6 +9,8 @@ from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplat
 from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors
 from static.summary_metrics import evaluation_metrics
 
+# init module logger
+logger = logging.getLogger(__name__)
 
 class ChainWrapper(ABC):
     def __init__(self):
@@ -177,12 +180,17 @@ class SummaryEvaluator(TextEvaluator):
         """
 
         evaluation: SummaryEvaluations = SummaryEvaluations()
-        for eval_type, (criteria, steps) in evaluation_metrics.items():
-            chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
-            evaluation_result = chain.invoke({"criteria": criteria, "document": self._document, "metric_name": eval_type,
-                                              "steps": steps, "summary": text})
-            evaluation.evaluations.append(evaluation_result)
+        logger.info("Performing summary evaluations")
+        try:
+            for eval_type, (criteria, steps) in evaluation_metrics.items():
+                chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
+                evaluation_result = chain.invoke({"criteria": criteria, "document": self._document, "metric_name": eval_type,
+                                                  "steps": steps, "summary": text})
+                evaluation.evaluations.append(evaluation_result)
+        except Exception as e:
+            logger.exception(f"A exception occured: {e}")
 
+        logger.info("The summary evaluation was performed")
         return evaluation
 
     def set_document(self, document: str):
