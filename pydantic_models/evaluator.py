@@ -40,3 +40,13 @@ class Errors(BaseModel):
     error: List[ErrorItem] = Field(...,
                                    description="A list of errors representing all possible grammatical "
                                                "errors in the sentence.")
+
+
+grammatical_errors_schema: List[ResponseSchema] = [
+    ResponseSchema(name="grammatical_errors",
+                   description="A list of strings. Each string corresponding to a grammatical error found in the sentence.",
+                   type="List[string]"),
+    ResponseSchema(name="grammatical_errors_correction",
+                   description="A dictionary of strings as keys and strings as values. Each key corresponding to a grammatical error found in the sentence and each value corresponding to its correction",
+                   type="Dict[string, string]"),
+]

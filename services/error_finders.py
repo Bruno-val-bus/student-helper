@@ -8,12 +8,13 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
-from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, summary_evaluation_item_schema, \
-    ModelFieldNotFoundError
+from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, grammatical_errors_schema, \
+    summary_evaluation_item_schema, ModelFieldNotFoundError
 from static.summary_metrics import evaluation_metrics
 
 # init module logger
 logger = logging.getLogger(__name__)
+
 
 class SchemaChainWrapper(ABC):
     @abstractmethod
@@ -35,44 +36,19 @@ class ChainWrapper(ABC):
         """Returns output parser"""
 
     @abstractmethod
-    def invoke(self, **kwargs):
-        """Returns output parser"""
-
-
-class SchemaErrorChainWrapper(ChainWrapper):
-
-    def create_prompt(self):
-        """Returns prompt"""
-        # The format instructions that LangChain makes. Let's look at them
-        format_instructions = self.output_parser.get_format_instructions()
-
-        grammatical_errors_template = """Given the following sentence, extract the grammatical errors.\n{format_instructions}\n{sentence}"""
-
-        self.prompt_template = ChatPromptTemplate(
-            input_variables=["sentence"],
-            messages=[
-                HumanMessagePromptTemplate.from_template(grammatical_errors_template)
-            ],
-            partial_variables={"format_instructions": format_instructions}
-        )
-
-    def create_output_parser(self):
-        """Returns output parser"""
-        # The schema I want out
-        response_schemas = [
-            ResponseSchema(name="grammatical_errors",
-                           description="A list of strings. Each string corresponding to a grammatical error found in the sentence.",
-                           type="List[string]"),
-            ResponseSchema(name="grammatical_errors_correction",
-                           description="A dictionary of strings as keys and strings as values. Each key corresponding to a grammatical error found in the sentence and each value corresponding to its correction",
-                           type="Dict[string, string]"),
-        ]
-
-        # The parser that will look for the LLM output in my schema and return it back to me
-        self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
+    def invoke(self, **kwargs) -> BaseModel:
+        """Creates chain from output parser and prompt and calls invoke function from created chain"""
 
 
 class GrammaticalErrorsChainWrapper(ChainWrapper):
+
+    def invoke(self, **kwargs) -> Errors:
+        llm: BaseLanguageModel = kwargs.get("llm")
+        text = kwargs.get("sentence")
+        chain = self.prompt_template | llm | self.output_parser
+        errors: Errors = chain.invoke({"sentence": text})
+        return errors
+
     def create_prompt(self):
         """Creates prompt template for grammatical errors"""
         # The format instructions that LangChain makes. Let's look at them
@@ -92,8 +68,38 @@ class GrammaticalErrorsChainWrapper(ChainWrapper):
         self.output_parser = PydanticOutputParser(pydantic_object=Errors)
 
 
-class SummaryChainWrapper(ChainWrapper):
+class SchemaGrammaticalErrorsChainWrapper(GrammaticalErrorsChainWrapper, SchemaChainWrapper):
+
     def invoke(self, **kwargs):
+        raise NotImplementedError("Unable to invoke chain from schema for grammatical errors.")
+
+    def transform_schema2model(self, response_schema: dict[str: str]) -> BaseModel:
+        raise NotImplementedError("Unable to transform schema to model for grammatical errors.")
+
+    def create_prompt(self):
+        """Returns prompt"""
+        # The format instructions that LangChain makes. Let's look at them
+        format_instructions = self.output_parser.get_format_instructions()
+
+        grammatical_errors_template = """Given the following sentence, extract the grammatical errors.\n{format_instructions}\n{sentence}"""
+
+        self.prompt_template = ChatPromptTemplate(
+            input_variables=["sentence"],
+            messages=[
+                HumanMessagePromptTemplate.from_template(grammatical_errors_template)
+            ],
+            partial_variables={"format_instructions": format_instructions}
+        )
+
+    def create_output_parser(self):
+        """Returns output parser"""
+        response_schemas: List[ResponseSchema] = grammatical_errors_schema
+        # The parser that will look for the LLM output in my schema and return it back to me
+        self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
+
+
+class SummaryChainWrapper(ChainWrapper):
+    def invoke(self, **kwargs) -> SummaryEvaluationItem:
         llm: BaseLanguageModel = kwargs.get("llm")
         criteria = kwargs.get("criteria")
         document = kwargs.get("document")
@@ -101,9 +107,9 @@ class SummaryChainWrapper(ChainWrapper):
         steps = kwargs.get("steps")
         text = kwargs.get("summary")
         chain = self.prompt_template | llm | self.output_parser
-        evaluation_result = chain.invoke({"criteria": criteria, "document": document,
-                                          "metric_name": eval_type,
-                                          "steps": steps, "summary": text})
+        evaluation_result: SummaryEvaluationItem = chain.invoke({"criteria": criteria, "document": document,
+                                                                 "metric_name": eval_type,
+                                                                 "steps": steps, "summary": text})
         return evaluation_result
 
     def create_prompt(self):
@@ -155,15 +161,15 @@ class SummaryChainWrapper(ChainWrapper):
 
 
 class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
-    def invoke(self, **kwargs):
+    def invoke(self, **kwargs) -> SummaryEvaluationItem:
         llm: BaseLanguageModel = kwargs.get("llm")
         criteria = kwargs.get("criteria")
         document = kwargs.get("document")
         eval_type = kwargs.get("metric_name")
         steps = kwargs.get("steps")
         text = kwargs.get("summary")
-        evaluation_result = super().invoke(llm=llm, criteria=criteria, document=document,
-                                           metric_name=eval_type, steps=steps, summary=text)
+        evaluation_result: SummaryEvaluationItem = super().invoke(llm=llm, criteria=criteria, document=document,
+                                                                  metric_name=eval_type, steps=steps, summary=text)
         evaluation_result = self.transform_schema2model(evaluation_result)
         return evaluation_result
 
@@ -211,8 +217,8 @@ class GrammaticalEvaluator(TextEvaluator):
         :param text:
         :return: Errors (BaseModel)
         """
-        chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
-        errors: Errors = chain.invoke({"sentence": text})
+        errors = self._chain_comps.invoke(sentence=text, llm=self._llm)
+        logger.info("The grammatical evaluation was performed")
         return errors
 
 

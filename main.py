@@ -9,8 +9,12 @@ from configs.configurator import Config
 
 
 def main_errors():
-    config = Config("config.yaml")
-    factory = TextEvaluatorFactory(RecordingType.LANGUAGE_PRODUCTION, config)
+    setup_name = "ONLINE_OPENAI_GPT3"
+    config = Config("config.yaml", setup_name)
+    recording_type = RecordingType.LANGUAGE_PRODUCTION
+    logger = logging.getLogger(__name__)
+    logger.info(f'Started evaluation for %s using the %s setup', recording_type, setup_name)
+    factory = TextEvaluatorFactory(recording_type, config)
     evaluator = factory.get_evaluator()
     sentence = "After went to the store, she buyed some apples and oranges, but forgot to brings her wallet so she couldn't pays for them."
     recording = Recording()
@@ -35,5 +39,5 @@ def main_summary():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #main_errors()
+    main_errors()
     main_summary()

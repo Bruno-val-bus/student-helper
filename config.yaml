@@ -1,6 +1,10 @@
 app:
   name: "Student Helper"
 
+llm_parser: # "schema" , "model"
+  COMPREHENSION: "schema"
+  LANGUAGE_PRODUCTION: "model"
+
 llm:
   ONLINE_OPENAI_GPT3:
     LOCAL_MODEL: False
