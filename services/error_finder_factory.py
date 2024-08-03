@@ -61,8 +61,18 @@ class TextEvaluatorFactory:
                 return llm
 
             elif self.config.get_llm_setup_name() == "LOCAL_OLLAMA_LLAMA3":
+                # host llm on localhost
                 llm_setup = self.config.get_llm_setup_params()
                 llm = ollama.Ollama(model=llm_setup['MODEL_NAME'])
+                return llm
+
+            elif self.config.get_llm_setup_name() == "LOCAL_DOCKER_OLLAMA_LLAMA3":
+                # host llm in docker network
+                llm_setup = self.config.get_llm_setup_params()
+                host = llm_setup['OLLAMA_HOST']
+                port = llm_setup['OLLAMA_PORT']
+                llm = ollama.Ollama(model=llm_setup['MODEL_NAME'],
+                                    base_url=f'http://{host}:{port}')
                 return llm
 
             else:

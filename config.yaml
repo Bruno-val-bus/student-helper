@@ -47,6 +47,28 @@ logging:
       filename: student_helper_logs.log
       mode: w # a (append logs)
 
+  loggers:
+    urllib3:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    httpx:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    openai:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    httpcore:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+
   root:
     level: DEBUG
     handlers: [ console, file ]

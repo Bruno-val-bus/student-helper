@@ -35,33 +35,58 @@ and also for building and deploying the entire system.
 To build and run the Docker containers for the models and services,
 you will need [docker](https://docs.docker.com/engine/install/)
 
-### Docker Compose File
+### Using LOCAL_OLLAMA_LLAMA3 model
+
+- To only run Ollama inside a container, run the dedicated `docker-compose.ollama.yaml` file:
+
+```shell
+docker compose -f docker-compose.ollama.yaml up 
+```
+
+- In order to run specific models, these first have to be downloaded. As this setup uses the `LLAMA3:8b` model,
+the following model needs to be downloaded as follows, before scripts can be run over it:
+
+```shell
+docker exec -it ollama ollama run llama3:8b
+```
+After it is downloaded, you can now interact with ollama directly out of your python script. Useful for development.
+
+
+
+### Using an entirely dockerized environment
 
 In the `docker-compose.yaml` file, the services are defined as follows:
 
 ```yaml
 services:
   student_helper_backend:
-    #image: firstapp:latest
     build:
       context: .
-    container_name: firstapp
-    ports:
-      - "8080:80"
+    container_name: student_helper_server
+    networks:
+      - student-helper-net
     volumes:
       - ./app1_data:/app/data
-    environment:
-      - .env
+    depends_on:
+      - ollama
 
   ollama:
     image: ollama/ollama:latest
+    container_name: ollama
     ports:
       - "11434:11434"
+    networks:
+      - student-helper-net
     volumes:
       - /ollama:/root/.ollama
-    container_name: ollama
+
+networks:
+  student-helper-net:
+    driver: bridge
     
 ```
+where the student_helper_server is the build docker container from our setup.
+
 
 ### Build the Docker Images:
 
@@ -83,11 +108,24 @@ Running in detached mode prevents the logs of all containers from flooding your 
 To view the logs for a specific container, use the docker logs command followed by the container name:
 
 ```sh
-
-docker logs <container-name>
+docker logs -f <container-name>
 ```
 You can find the container names using the docker ps command, which lists all running containers:
 
 ```sh
 docker ps
 ```
+
+## Stopping docker containers 
+- To stop all containers, run
+
+```shell
+docker compose down
+```
+- To stop and then remove certain containers, do the following:
+
+```shell
+docker container stop <container name>
+docker container rm <container name>
+```
+
