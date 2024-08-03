@@ -1,0 +1,74 @@
+app:
+  name: "Student Helper"
+
+llm:
+  ONLINE_OPENAI_GPT3:
+    LOCAL_MODEL: False
+    MODEL_PROVIDER: "OpenAI"
+    MODEL_NAME: "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
+    TEMPERATURE: 0
+
+  LOCAL_OLLAMA_LLAMA3:
+    MODEL_PROVIDER: "Ollama"
+    MODEL_NAME: "llama3:8b"
+
+  LOCAL_DOCKER_OLLAMA_LLAMA3:
+    LOCAL_MODEL: True
+    MODEL_PROVIDER: "Ollama"
+    MODEL_NAME: "llama3:8b"
+    OLLAMA_HOST: "ollama"
+    OLLAMA_PORT: 11434
+
+logging:
+  version: 1
+  disable_existing_loggers: False
+
+  formatters:
+    simple:
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+
+    colored:
+      (): configs.configurator.ColoredFormatter
+      format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+      datefmt: '%Y-%m-%d %H:%M:%S'
+
+  handlers:
+    console:
+      class: logging.StreamHandler
+      level: DEBUG
+      formatter: colored
+      stream: ext://sys.stdout
+
+    file:
+      class: logging.FileHandler
+      level: INFO
+      formatter: simple
+      filename: student_helper_logs.log
+      mode: w # a (append logs)
+
+  loggers:
+    urllib3:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    httpx:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    openai:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+    httpcore:
+      level: WARNING
+      handlers: [ console ]
+      propagate: no
+
+
+  root:
+    level: DEBUG
+    handlers: [ console, file ]

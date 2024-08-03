@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import List, Dict
 
@@ -11,6 +12,8 @@ from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations,
     ModelFieldNotFoundError
 from static.summary_metrics import evaluation_metrics
 
+# init module logger
+logger = logging.getLogger(__name__)
 
 class SchemaChainWrapper(ABC):
     @abstractmethod
@@ -231,6 +234,7 @@ class SummaryEvaluator(TextEvaluator):
                                                          metric_name=eval_type, steps=steps, summary=text)
             evaluation.evaluations.append(evaluation_result)
 
+        logger.info("The summary evaluation was performed")
         return evaluation
 
     def set_document(self, document: str):
