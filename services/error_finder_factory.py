@@ -4,7 +4,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain_community.llms import ollama
 
 from app.models.pydantic.sessions import RecordingType
-from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, SummaryEvaluator
+from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, SummaryEvaluator, SchemaSummaryChainWrapper
 from dotenv import load_dotenv
 import os
 

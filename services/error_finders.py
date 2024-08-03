@@ -1,12 +1,21 @@
 from abc import ABC, abstractmethod
+from typing import List, Dict
+
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
 from langchain_core.language_models import BaseLanguageModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
-from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors
+from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, summary_evaluation_item_schema, \
+    ModelFieldNotFoundError
 from static.summary_metrics import evaluation_metrics
+
+
+class SchemaChainWrapper(ABC):
+    @abstractmethod
+    def transform_schema2model(self, response_schema: dict[str: str]) -> BaseModel:
+        """Transforms schema to pydantic Basemodel"""
 
 
 class ChainWrapper(ABC):
@@ -22,8 +31,12 @@ class ChainWrapper(ABC):
     def create_output_parser(self):
         """Returns output parser"""
 
+    @abstractmethod
+    def invoke(self, **kwargs):
+        """Returns output parser"""
 
-class SchemaChainWrapper(ChainWrapper):
+
+class SchemaErrorChainWrapper(ChainWrapper):
 
     def create_prompt(self):
         """Returns prompt"""
@@ -77,6 +90,19 @@ class GrammaticalErrorsChainWrapper(ChainWrapper):
 
 
 class SummaryChainWrapper(ChainWrapper):
+    def invoke(self, **kwargs):
+        llm: BaseLanguageModel = kwargs.get("llm")
+        criteria = kwargs.get("criteria")
+        document = kwargs.get("document")
+        eval_type = kwargs.get("metric_name")
+        steps = kwargs.get("steps")
+        text = kwargs.get("summary")
+        chain = self.prompt_template | llm | self.output_parser
+        evaluation_result = chain.invoke({"criteria": criteria, "document": document,
+                                          "metric_name": eval_type,
+                                          "steps": steps, "summary": text})
+        return evaluation_result
+
     def create_prompt(self):
         """Returns prompt"""
         # The format instructions that LangChain makes. Let's look at them
@@ -107,7 +133,7 @@ class SummaryChainWrapper(ChainWrapper):
 
                 {summary}
                 
-                Provide your evaluation in the following JSON format:
+                Provide your evaluation in the following format:
                 
                 \n{format_instructions}\n
 
@@ -122,16 +148,39 @@ class SummaryChainWrapper(ChainWrapper):
     def create_output_parser(self):
         """Creates pydantic model output parser with SummaryEvaluationItem"""
         # The parser that will look for the LLM output in my schema and return it back to me
-        # self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
-        response_schemas = [
-            ResponseSchema(name="metric", description="Name of the metric"),
-            ResponseSchema(
-                name="score",
-                description="The given score out of 10 (0 extremely poor and 10 extremely good)",
-            ),
-            ResponseSchema(name="reason", description="The reason for the score in less than 15 words")
-        ]
+        self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
+
+
+class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
+    def invoke(self, **kwargs):
+        llm: BaseLanguageModel = kwargs.get("llm")
+        criteria = kwargs.get("criteria")
+        document = kwargs.get("document")
+        eval_type = kwargs.get("metric_name")
+        steps = kwargs.get("steps")
+        text = kwargs.get("summary")
+        evaluation_result = super().invoke(llm=llm, criteria=criteria, document=document,
+                                           metric_name=eval_type, steps=steps, summary=text)
+        evaluation_result = self.transform_schema2model(evaluation_result)
+        return evaluation_result
+
+    def create_output_parser(self):
+        """Creates pydantic model output parser with SummaryEvaluationItem"""
+        # The parser that will look for the LLM output in my schema and return it back to me
+        response_schemas: List[ResponseSchema] = summary_evaluation_item_schema
         self.output_parser = StructuredOutputParser.from_response_schemas(response_schemas)
+
+    def transform_schema2model(self, response_schema: dict[str: str]) -> SummaryEvaluationItem:
+        """Transforms response schema (dict) to pydantic model"""
+        model_fields = SummaryEvaluationItem.__fields__
+        summary_evaluation_item = SummaryEvaluationItem()
+        for model_field in model_fields.keys():
+            response_schema_field_value = response_schema.get(model_field, None)
+            if response_schema_field_value is None:
+                raise ModelFieldNotFoundError(model_field)
+            # add response_schema_field_value to corresponding field in summary_evaluation_item object
+            setattr(summary_evaluation_item, model_field, response_schema_field_value)
+        return summary_evaluation_item
 
 
 class TextEvaluator(ABC):
@@ -178,9 +227,8 @@ class SummaryEvaluator(TextEvaluator):
 
         evaluation: SummaryEvaluations = SummaryEvaluations()
         for eval_type, (criteria, steps) in evaluation_metrics.items():
-            chain = self._chain_comps.prompt_template | self._llm | self._chain_comps.output_parser
-            evaluation_result = chain.invoke({"criteria": criteria, "document": self._document, "metric_name": eval_type,
-                                              "steps": steps, "summary": text})
+            evaluation_result = self._chain_comps.invoke(llm=self._llm, criteria=criteria, document=self._document,
+                                                         metric_name=eval_type, steps=steps, summary=text)
             evaluation.evaluations.append(evaluation_result)
 
         return evaluation
