@@ -1,4 +1,4 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, APIRouter
 from app.models.pydantic.sessions import Session, Recording, RecordingStatus, RecordingType
 from app.models.repositories.recording import RecordingRepo
 from app.models.repositories.session import SessionRepo
@@ -9,6 +9,7 @@ app = FastAPI()
 
 recording_repo = RecordingRepo()
 session_repo = SessionRepo()
+router = APIRouter()
 
 
 def _attributes_not_none(obj, attributes: list):
@@ -18,7 +19,7 @@ def _attributes_not_none(obj, attributes: list):
     return True
 
 
-@app.post("/session/")
+@router.post("/session/")
 async def create_session(session: Session) -> Session:
     client_atts = ["facilitator_id", "student_id"]
     if _attributes_not_none(session, client_atts):
@@ -30,13 +31,13 @@ async def create_session(session: Session) -> Session:
                             detail=f"Missing required attributes {str(client_atts)} in {str(session.__class__.__name__)}")
 
 
-@app.patch("/session/{session_id}")
+@router.patch("/session/{session_id}")
 async def finish_session(session_id: int) -> Session:
     session: Session = session_repo.patch_session_attributes(session_id, end="")
     return session
 
 
-@app.post("/session/{session_id}/recording/")
+@router.post("/session/{session_id}/recording/")
 async def create_recording(session_id: int, recording: Recording) -> Recording:
     client_atts = ["type"]
     if _attributes_not_none(recording, client_atts):
@@ -50,7 +51,7 @@ async def create_recording(session_id: int, recording: Recording) -> Recording:
                             detail=f"Missing required attributes {str(client_atts)} in {str(recording.__class__.__name__)}")
 
 
-@app.patch("recording/{recording_id}/audio")
+@router.patch("recording/{recording_id}/audio")
 async def finish_recording(recording_id: int, file: UploadFile = File(...)) -> Recording:
     try:
         recording: Recording = recording_repo.get_recording(recording_id)
@@ -75,7 +76,7 @@ async def finish_recording(recording_id: int, file: UploadFile = File(...)) -> R
     return recording
 
 
-@app.post("recording/{recording_id}/evaluation")
+@router.post("recording/{recording_id}/evaluation")
 async def process_recording(recording_id: int) -> Recording:
     try:
         recording: Recording = recording_repo.get_recording(recording_id)
@@ -98,7 +99,7 @@ async def process_recording(recording_id: int) -> Recording:
     return recording
 
 
-@app.get("recording/{recording_id}/evaluation")
+@router.get("recording/{recording_id}/evaluation")
 async def get_recording_evaluation(recording_id: int) -> BaseModel:
     try:
         recording: Recording = recording_repo.get_recording(recording_id)
@@ -108,7 +109,7 @@ async def get_recording_evaluation(recording_id: int) -> BaseModel:
     return recording.evaluation
 
 
-@app.get("recording/{recording_id}/status")
+@router.get("recording/{recording_id}/status")
 async def get_recording_status(recording_id: int) -> RecordingStatus:
     try:
         recording: Recording = recording_repo.get_recording(recording_id)
@@ -118,12 +119,12 @@ async def get_recording_status(recording_id: int) -> RecordingStatus:
     return recording.status
 
 
-@app.get("/session/{session_id}/recording/")
+@router.get("/session/{session_id}/recording/")
 async def get_session_recordings(session_id: int) -> list[Recording]:
     pass
 
 
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+@router.get("/test_endpoint")
+async def test_endpoint():
+    test_endpoint = "This is test endpoint test_endpoint"
+    return test_endpoint
