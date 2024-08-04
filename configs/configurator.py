@@ -1,27 +1,10 @@
 import yaml
 import logging.config
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
 
 
 @dataclass
-@abstractmethod
-class ConfigInterface(ABC):
-    def _load_yaml_configs(self):
-        pass
-
-    def get_llm_setup_name(self):
-        pass
-
-    def get_llm_setup_params(self):
-        pass
-
-    def get_llm_output_parser(self, recording_type: str):
-        pass
-
-
-@dataclass
-class Config(ConfigInterface):
+class Config:
     def __init__(self, target_file: str, setup_name: str = 'ONLINE_OPENAI_GPT3'):
         self._file = target_file
         self._setup_name = setup_name
@@ -50,7 +33,7 @@ class Config(ConfigInterface):
     def get_llm_setup_params(self):
         return self._config_dict['llm'][self._setup_name]
 
-    def get_llm_output_parser(self, recording_type: str):
+    def get_llm_output_parser_type(self, recording_type: str):
         return self._config_dict['llm_parser'][recording_type]
 
 
@@ -85,3 +68,9 @@ class ColoredFormatter(logging.Formatter):
         # Restore the original format
         self._style._fmt = original_format
         return log_msg
+
+
+class LlmConfigOptions:
+    ONLINE_OPENAI_GPT3 = "ONLINE_OPENAI_GPT3"
+    LOCAL_OLLAMA_LLAMA3 = "LOCAL_OLLAMA_LLAMA3"
+    LOCAL_DOCKER_OLLAMA_LLAMA3 = "LOCAL_DOCKER_OLLAMA_LLAMA3"

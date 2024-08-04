@@ -2,14 +2,14 @@ app:
   name: "Student Helper"
 
 llm_parser: # "schema" , "model"
-  COMPREHENSION: "schema"
+  COMPREHENSION: "model"
   LANGUAGE_PRODUCTION: "model"
 
 llm:
   ONLINE_OPENAI_GPT3:
     LOCAL_MODEL: False
     MODEL_PROVIDER: "OpenAI"
-    MODEL_NAME: "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct", "llama3:8b"
+    MODEL_NAME: "gpt-3.5-turbo-0125"  # "gpt-3.5-turbo-0125", "gpt-3.5-turbo-instruct"
     TEMPERATURE: 0
 
   LOCAL_OLLAMA_LLAMA3:

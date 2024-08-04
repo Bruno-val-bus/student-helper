@@ -1,5 +1,5 @@
 from langchain.pydantic_v1 import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Union
 from langchain.output_parsers import ResponseSchema
 
 
@@ -26,8 +26,7 @@ summary_evaluation_item_schema: List[ResponseSchema] = [
 
 
 class SummaryEvaluations(BaseModel):
-    evaluations: List[
-        SummaryEvaluationItem] = []  # Field(..., description="A list of scores of all considered evaluation metrics for the provided summary")
+    evaluations: List[Union[SummaryEvaluationItem, BaseModel]] = []  # Field(..., description="A list of scores of all considered evaluation metrics for the provided summary")
 
 
 class ErrorItem(BaseModel):

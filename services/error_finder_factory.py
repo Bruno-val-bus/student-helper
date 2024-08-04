@@ -11,7 +11,7 @@ from app.models.pydantic.sessions import RecordingType
 from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, \
     SummaryEvaluator, SchemaSummaryChainWrapper, ChainWrapper, SchemaGrammaticalErrorsChainWrapper
 
-from configs.configurator import ConfigInterface
+from configs.configurator import Config
 
 # init module logger
 logger = logging.getLogger(__name__)
@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 
 class TextEvaluatorFactory:
 
-    def __init__(self, recording_type: str, config: ConfigInterface):
+    def __init__(self, recording_type: str, config: Config):
         self._recording_type: str = recording_type
         self._config = config
 
     def get_evaluator(self) -> TextEvaluator:
         llm = self.get_llm()
-        output_parser_type = self._config.get_llm_output_parser(self._recording_type)
+        output_parser_type = self._config.get_llm_output_parser_type(self._recording_type)
         processor: TextEvaluator
         try:
             if self._recording_type == RecordingType.COMPREHENSION:
@@ -37,8 +37,6 @@ class TextEvaluatorFactory:
                 else:
                     raise NotImplementedError(f"Output parser type {output_parser_type} has not been implemented yet")
 
-                chain_components.create_output_parser()
-                chain_components.create_prompt()
                 # TODO: document should be defined by user after defining RecordingType.COMPREHENSION in frontend
                 document = get_testing_document()
                 processor: SummaryEvaluator = SummaryEvaluator(llm, chain_components, document)
@@ -51,8 +49,6 @@ class TextEvaluatorFactory:
                 else:
                     raise NotImplementedError(f"Output parser type {output_parser_type} has not been implemented yet")
 
-                chain_components.create_output_parser()
-                chain_components.create_prompt()
                 processor: GrammaticalEvaluator = GrammaticalEvaluator(llm, chain_components)
             else:
                 raise NotImplementedError(f"Recording type {self._recording_type} has not been implemented yet")

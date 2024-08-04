@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict
+from typing import List, Dict, Union
 
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
@@ -26,14 +26,16 @@ class ChainWrapper(ABC):
     def __init__(self):
         self.output_parser = None
         self.prompt_template = None
+        self._create_output_parser()
+        self._create_prompt()
 
     @abstractmethod
-    def create_prompt(self):
-        """Returns prompt"""
+    def _create_prompt(self):
+        """Creates prompt"""
 
     @abstractmethod
-    def create_output_parser(self):
-        """Returns output parser"""
+    def _create_output_parser(self):
+        """Creates output parser"""
 
     @abstractmethod
     def invoke(self, **kwargs) -> BaseModel:
@@ -49,7 +51,7 @@ class GrammaticalErrorsChainWrapper(ChainWrapper):
         errors: Errors = chain.invoke({"sentence": text})
         return errors
 
-    def create_prompt(self):
+    def _create_prompt(self):
         """Creates prompt template for grammatical errors"""
         # The format instructions that LangChain makes. Let's look at them
         format_instructions = self.output_parser.get_format_instructions()
@@ -62,7 +64,7 @@ class GrammaticalErrorsChainWrapper(ChainWrapper):
             partial_variables={"format_instructions": format_instructions}
         )
 
-    def create_output_parser(self):
+    def _create_output_parser(self):
         """Creates pydantic model output parser with Errors"""
         # The parser that will look for the LLM output in my schema and return it back to me
         self.output_parser = PydanticOutputParser(pydantic_object=Errors)
@@ -76,7 +78,7 @@ class SchemaGrammaticalErrorsChainWrapper(GrammaticalErrorsChainWrapper, SchemaC
     def transform_schema2model(self, response_schema: dict[str: str]) -> BaseModel:
         raise NotImplementedError("Unable to transform schema to model for grammatical errors.")
 
-    def create_prompt(self):
+    def _create_prompt(self):
         """Returns prompt"""
         # The format instructions that LangChain makes. Let's look at them
         format_instructions = self.output_parser.get_format_instructions()
@@ -91,7 +93,7 @@ class SchemaGrammaticalErrorsChainWrapper(GrammaticalErrorsChainWrapper, SchemaC
             partial_variables={"format_instructions": format_instructions}
         )
 
-    def create_output_parser(self):
+    def _create_output_parser(self):
         """Returns output parser"""
         response_schemas: List[ResponseSchema] = grammatical_errors_schema
         # The parser that will look for the LLM output in my schema and return it back to me
@@ -99,7 +101,7 @@ class SchemaGrammaticalErrorsChainWrapper(GrammaticalErrorsChainWrapper, SchemaC
 
 
 class SummaryChainWrapper(ChainWrapper):
-    def invoke(self, **kwargs) -> SummaryEvaluationItem:
+    def invoke(self, **kwargs) -> Union[SummaryEvaluationItem, dict]:
         llm: BaseLanguageModel = kwargs.get("llm")
         criteria = kwargs.get("criteria")
         document = kwargs.get("document")
@@ -107,12 +109,13 @@ class SummaryChainWrapper(ChainWrapper):
         steps = kwargs.get("steps")
         text = kwargs.get("summary")
         chain = self.prompt_template | llm | self.output_parser
-        evaluation_result: SummaryEvaluationItem = chain.invoke({"criteria": criteria, "document": document,
-                                                                 "metric_name": eval_type,
-                                                                 "steps": steps, "summary": text})
+        evaluation_result: Union[SummaryEvaluationItem, dict] = chain.invoke(
+            {"criteria": criteria, "document": document,
+             "metric_name": eval_type,
+             "steps": steps, "summary": text})
         return evaluation_result
 
-    def create_prompt(self):
+    def _create_prompt(self):
         """Returns prompt"""
         # The format instructions that LangChain makes. Let's look at them
         format_instructions = self.output_parser.get_format_instructions()
@@ -154,7 +157,7 @@ class SummaryChainWrapper(ChainWrapper):
             partial_variables={"format_instructions": format_instructions}
         )
 
-    def create_output_parser(self):
+    def _create_output_parser(self):
         """Creates pydantic model output parser with SummaryEvaluationItem"""
         # The parser that will look for the LLM output in my schema and return it back to me
         self.output_parser = PydanticOutputParser(pydantic_object=SummaryEvaluationItem)
@@ -168,12 +171,12 @@ class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
         eval_type = kwargs.get("metric_name")
         steps = kwargs.get("steps")
         text = kwargs.get("summary")
-        evaluation_result: SummaryEvaluationItem = super().invoke(llm=llm, criteria=criteria, document=document,
-                                                                  metric_name=eval_type, steps=steps, summary=text)
-        evaluation_result = self.transform_schema2model(evaluation_result)
-        return evaluation_result
+        evaluation_result: dict = super().invoke(llm=llm, criteria=criteria, document=document,
+                                                 metric_name=eval_type, steps=steps, summary=text)
+        evaluation_result_transformed: SummaryEvaluationItem = self.transform_schema2model(evaluation_result)
+        return evaluation_result_transformed
 
-    def create_output_parser(self):
+    def _create_output_parser(self):
         """Creates pydantic model output parser with SummaryEvaluationItem"""
         # The parser that will look for the LLM output in my schema and return it back to me
         response_schemas: List[ResponseSchema] = summary_evaluation_item_schema
@@ -236,8 +239,9 @@ class SummaryEvaluator(TextEvaluator):
 
         evaluation: SummaryEvaluations = SummaryEvaluations()
         for eval_type, (criteria, steps) in evaluation_metrics.items():
-            evaluation_result = self._chain_comps.invoke(llm=self._llm, criteria=criteria, document=self._document,
-                                                         metric_name=eval_type, steps=steps, summary=text)
+            evaluation_result: BaseModel = self._chain_comps.invoke(llm=self._llm, criteria=criteria,
+                                                                    document=self._document,
+                                                                    metric_name=eval_type, steps=steps, summary=text)
             evaluation.evaluations.append(evaluation_result)
 
         logger.info("The summary evaluation was performed")

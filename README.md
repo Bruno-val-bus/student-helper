@@ -37,10 +37,10 @@ you will need [docker](https://docs.docker.com/engine/install/)
 
 ### Using LOCAL_OLLAMA_LLAMA3 model
 
-- To only run Ollama inside a container, run the dedicated `docker-compose.ollama.yaml` file:
+- To only run Ollama inside a container, run the `ollama` container from the dedicated `docker-compose.yaml` file:
 
 ```shell
-docker compose -f docker-compose.ollama.yaml up 
+docker compose -f docker-compose.yaml up ollama 
 ```
 
 - In order to run specific models, these first have to be downloaded. As this setup uses the `LLAMA3:8b` model,
@@ -49,6 +49,8 @@ the following model needs to be downloaded as follows, before scripts can be run
 ```shell
 docker exec -it ollama ollama run llama3:8b
 ```
+- The aforementioned docker cmd executes ``ollama run llama3:8b`` inside the running container `ollama`
+
 After it is downloaded, you can now interact with ollama directly out of your python script. Useful for development.
 
 
@@ -85,7 +87,7 @@ networks:
     driver: bridge
     
 ```
-where the student_helper_server is the build docker container from our setup.
+where the student_helper_server is the build docker container from our setup in ``.\Dockerfile``.
 
 
 ### Build the Docker Images:
