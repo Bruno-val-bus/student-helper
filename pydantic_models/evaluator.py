@@ -16,17 +16,25 @@ class SummaryEvaluationItem(BaseModel):
 
 
 summary_evaluation_item_schema: List[ResponseSchema] = [
-    ResponseSchema(name="metric", description="Name of the metric"),
+    ResponseSchema(
+        name="metric",
+        description="Name of the metric",
+        type="str"),
     ResponseSchema(
         name="score",
         description="The given score out of 10 (0 extremely poor and 10 extremely good)",
+        type="int"
     ),
-    ResponseSchema(name="reason", description="The reason for the score in less than 15 words")
+    ResponseSchema(
+        name="reason",
+        description="The reason for the score in less than 15 words",
+        type="str")
 ]
 
 
 class SummaryEvaluations(BaseModel):
-    evaluations: List[Union[SummaryEvaluationItem, BaseModel]] = []  # Field(..., description="A list of scores of all considered evaluation metrics for the provided summary")
+    evaluations: List[Union[
+        SummaryEvaluationItem, BaseModel]] = []  # Field(..., description="A list of scores of all considered evaluation metrics for the provided summary")
 
 
 class ErrorItem(BaseModel):
