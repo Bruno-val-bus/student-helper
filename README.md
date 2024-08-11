@@ -158,4 +158,16 @@ docker compose down
 docker container stop <container name>
 docker container rm <container name>
 ```
-
+# Testing
+- Run the following command from the root path to test evaluators  
+```shell
+pytest --verbose
+```
+Interpreting the result
+```commandline
+tests/services/test_evaluators.py::test_summary_evaluate[Low Quality Summary] PASSED        [100%]
+```
+- `tests/services/test_evaluators.py`: Classes that are being tested: `Evaluator` classes
+- `test_summary_evaluate`: Name of the test method and what it tests: It tests the evaluate method of the `SummaryEvaluator` class
+- `[Low Quality Summary]`: Name of the parameter set inputted in the test method 
+- `PASSED`, `FAILED`, `ERROR` evaluation of the parameter set inputted  in the test

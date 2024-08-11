@@ -8,8 +8,8 @@ import pytest
 
 from app.models.pydantic.sessions import RecordingType
 from pydantic_models.evaluator import Errors, SummaryEvaluations, ErrorItem, SummaryEvaluationItem
-from services.error_finder_factory import TextEvaluatorFactory
-from services.error_finders import SummaryEvaluator, GrammaticalEvaluator, TextEvaluator
+from services.evaluators_factory import TextEvaluatorFactory
+from services.evaluators import SummaryEvaluator, GrammaticalEvaluator, TextEvaluator
 from static.summary_example_text import afrikaans_OPENAI_summary_good, afrikaans_OPENAI_summary_bad
 
 CONFIG_FILE_PATH = os.path.join(os.getcwd(), "configs", "config.yaml")

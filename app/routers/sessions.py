@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, APIRouter
 from app.models.pydantic.sessions import Session, Recording, RecordingStatus, RecordingType
 from app.models.repositories.recording import RecordingRepo
 from app.models.repositories.session import SessionRepo
-from services.error_finder_factory import TextEvaluatorFactory
+from services.evaluators_factory import TextEvaluatorFactory
 from langchain.pydantic_v1 import BaseModel
 
 app = FastAPI()

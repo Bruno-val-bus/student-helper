@@ -8,7 +8,7 @@ from langchain_community.llms import ollama
 from static.summary_example_text import afrikaans_OPENAI_doc
 
 from app.models.pydantic.sessions import RecordingType
-from .error_finders import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, \
+from .evaluators import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, \
     SummaryEvaluator, SchemaSummaryChainWrapper, ChainWrapper, SchemaGrammaticalErrorsChainWrapper
 
 from configs.configurator import Config
