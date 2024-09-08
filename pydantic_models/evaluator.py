@@ -44,8 +44,8 @@ class ErrorItem(BaseModel):
 
 
 class Errors(BaseModel):
-    error: List[ErrorItem] = Field(...,
-                                   description="A list of errors representing all possible grammatical "
+    error_items: List[ErrorItem] = Field(...,
+                                         description="A list of errors representing all possible grammatical "
                                                "errors in the sentence.")
 
 
