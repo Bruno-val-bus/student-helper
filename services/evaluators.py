@@ -8,8 +8,10 @@ from langchain_core.language_models import BaseLanguageModel
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplate, PromptTemplate
 
+from app.models.pydantic.sessions import Recording
 from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, grammatical_errors_schema, \
-    summary_evaluation_item_schema, ModelFieldNotFoundError
+    summary_evaluation_item_schema, ModelFieldNotFoundError, ErrorItem
+from services.converters import Audio2TextConverter
 from static.summary_metrics import evaluation_metrics
 
 # init module logger
@@ -197,16 +199,27 @@ class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
 
 class TextEvaluator(ABC):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
+        self._audio2text_converter: Audio2TextConverter = None
+        self._recording: Recording = None
         self._llm: BaseLanguageModel = llm
         self._chain_comps = chain_comps
 
-    def set_llm(self, llm):
+    def set_llm(self, llm: BaseLanguageModel):
         self._llm = llm
 
     def set_chain_comps(self, chain_comps: ChainWrapper):
         self._chain_comps = chain_comps
 
-    def evaluate(self, text) -> BaseModel:
+    def set_recording(self, recording: Recording):
+        self._recording = recording
+
+    def set_audio2text_converter(self, audio2text_converter: Audio2TextConverter):
+        self._audio2text_converter = audio2text_converter
+
+    def evaluate(self) -> BaseModel:
+        ...
+
+    def process_recording(self) -> None:
         ...
 
 
@@ -214,13 +227,17 @@ class GrammaticalEvaluator(TextEvaluator):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
         super().__init__(llm, chain_comps)
 
-    def evaluate(self, text: str) -> Errors:
+    def evaluate(self) -> Errors:
         """
         Finds the (grammatical) error in the text and returns it ina structured format along with a suggestion for correction
         :param text:
         :return: Errors (BaseModel)
         """
-        errors = self._chain_comps.invoke(sentence=text, llm=self._llm)
+        error_items: List[ErrorItem] = []
+        for sentence in self._recording.texts_timestamps.keys():
+            errors: Errors = self._chain_comps.invoke(sentence=sentence, llm=self._llm)
+            error_items = error_items + errors.error_items
+        errors: Errors = Errors(error_items=error_items)
         logger.info("The grammatical evaluation was performed")
         return errors
 
@@ -228,20 +245,20 @@ class GrammaticalEvaluator(TextEvaluator):
 class SummaryEvaluator(TextEvaluator):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper, document: str):
         super().__init__(llm, chain_comps)
-        self._document: str = document
+        self._document: str = document # this is the document against which the student's summary will be compared to
 
-    def evaluate(self, text: str) -> SummaryEvaluations:
+    def evaluate(self) -> SummaryEvaluations:
         """
         :param document:
         :param text:
         :return:
         """
-
+        summary: str = list(self._recording.texts_timestamps.keys())[0] # TODO dont like it: i assume it's always goint to be one item for the summary use case
         evaluation: SummaryEvaluations = SummaryEvaluations()
         for eval_type, (criteria, steps) in evaluation_metrics.items():
             evaluation_result: BaseModel = self._chain_comps.invoke(llm=self._llm, criteria=criteria,
                                                                     document=self._document,
-                                                                    metric_name=eval_type, steps=steps, summary=text)
+                                                                    metric_name=eval_type, steps=steps, summary=summary)
             evaluation.evaluations.append(evaluation_result)
 
         logger.info("The summary evaluation was performed")

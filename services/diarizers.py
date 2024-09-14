@@ -1,10 +1,20 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 
 class IDiarization(ABC):
 
-    @abstractmethod
-    def diarize(self, origin_audio_file_path: str) -> list[str]:
-        """" Method used to diarize (identify speakers) of provided audio path"""
+    def diarize(self, origin_audio_file_path: str) -> List[str]:
+        ...
+
+
+class MultiFileDiarization(IDiarization):
+
+    def diarize(self, origin_audio_file_path: str) -> List[str]:
         pass
 
+
+class SingleFileDiarization(IDiarization):
+
+    def diarize(self, origin_audio_file_path: str) -> List[str]:
+        pass

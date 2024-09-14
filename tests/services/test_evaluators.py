@@ -6,7 +6,7 @@ from configs.configurator import LlmConfigOptions, Config
 from static.summary_metrics import RELEVANCE, COHERENCE, CONSISTENCY, FLUENCY
 import pytest
 
-from app.models.pydantic.sessions import RecordingType
+from app.models.pydantic.sessions import RecordingType, Recording
 from pydantic_models.evaluator import Errors, SummaryEvaluations, ErrorItem, SummaryEvaluationItem
 from services.evaluators_factory import TextEvaluatorFactory
 from services.evaluators import SummaryEvaluator, GrammaticalEvaluator, TextEvaluator
@@ -17,29 +17,36 @@ if not os.path.exists(CONFIG_FILE_PATH):
     raise FileNotFoundError(f"Config file {CONFIG_FILE_PATH} does not exist")
 logger = logging.getLogger(__name__)
 
-sentence_1 = ("After going to the store, she buyed some apples and oranges, but forgot to brings her wallet so she "
-              "couldn't pays for them.")
+sentence_1 = "After going to the store, she buyed some apples and oranges, but forgot to brings her wallet so she " \
+             "couldn't pays for them."
 sentence_1_errors = {
-        "buyed": ErrorItem(error="buyed",
-                           correction="bought",
-                           category="Verb tense"),
-        "brings": ErrorItem(error="brings",
-                            correction="bring",
-                            category="Subject-Verb Agreement"),
-        "pays": ErrorItem(error="pays",
-                          correction="pay",
-                          category="Subject-Verb Agreement"),
-    }
+    "buyed": ErrorItem(error="buyed",
+                       correction="bought",
+                       category="Verb tense"),
+    "brings": ErrorItem(error="brings",
+                        correction="bring",
+                        category="Subject-Verb Agreement"),
+    "pays": ErrorItem(error="pays",
+                      correction="pay",
+                      category="Subject-Verb Agreement"),
+}
 
 sentence_2 = "The grass are green on the other side."
 sentence_2_errors = {
-        "The grass are": ErrorItem(error="The grass are",
-                         correction="The grass is",
-                         category="Subject-Verb Agreement"),
-    }
+    "The grass are": ErrorItem(error="The grass are",
+                               correction="The grass is",
+                               category="Subject-Verb Agreement"),
+    "grass are": ErrorItem(error="grass are",
+                           correction="grass is",
+                           category="Subject-Verb Agreement"),
+}
+recording_1 = Recording()
+recording_1.texts_timestamps = {sentence_1: 0.0}
+recording_2 = Recording()
+recording_2.texts_timestamps = {sentence_2: 0.0}
 param_sets = [
-    (sentence_1, sentence_1_errors),
-    (sentence_2, sentence_2_errors)
+    (recording_1, sentence_1_errors),
+    (recording_2, sentence_2_errors)
 ]
 param_sets_ids = [f"Sentence with errors: '{sentence_1}'",
                   f"Sentence with errors: '{sentence_2}'"]
@@ -64,9 +71,11 @@ def grammatical_evaluator(config: Config) -> Union[GrammaticalEvaluator, TextEva
 def error_items_list(grammatical_evaluator: GrammaticalEvaluator) -> List[List[ErrorItem]]:
     error_items_list: List[List[ErrorItem]] = []
     for parameter_set in param_sets:
-        sentence, _ = parameter_set
-        errors: Errors = grammatical_evaluator.evaluate(sentence)
-        error_items: List[ErrorItem] = errors.error
+        recording: Recording
+        recording, _ = parameter_set
+        grammatical_evaluator.set_recording(recording)
+        errors: Errors = grammatical_evaluator.evaluate()
+        error_items: List[ErrorItem] = errors.error_items
         error_items_list.append(error_items)
     return error_items_list
 
@@ -78,10 +87,10 @@ def summary_evaluator(config: Config) -> Union[SummaryEvaluator, TextEvaluator]:
     return summary_evaluator
 
 
-@pytest.mark.parametrize("sentence, error_item_reference", param_sets, ids=param_sets_ids)
+@pytest.mark.parametrize("recording, error_item_reference", param_sets, ids=param_sets_ids)
 def test_grammatical_evaluate(error_items_list: List[List[ErrorItem]],
                               request,
-                              sentence: str,
+                              recording: Recording,
                               error_item_reference: dict[str: ErrorItem]
                               ):
     """
@@ -90,15 +99,15 @@ def test_grammatical_evaluate(error_items_list: List[List[ErrorItem]],
     param_index = list(request.node.callspec.indices.values())[0]
     error_items = error_items_list[param_index]
     for error_item in error_items:
-        assert error_item.error is not None, f"LLM did not yield error for sentence: '{sentence}'"
-        assert error_item.category is not None, f"LLM did not yield error category: '{sentence}'"
-        assert error_item.correction is not None, f"LLM did not yield error correction: '{sentence}'"
+        assert error_item.error is not None, f"LLM did not yield error for sentence: '{list(recording.texts_timestamps.keys())[0]}'"
+        assert error_item.category is not None, f"LLM did not yield error category: '{list(recording.texts_timestamps.keys())[0]}'"
+        assert error_item.correction is not None, f"LLM did not yield error correction: '{list(recording.texts_timestamps.keys())[0]}'"
 
 
-@pytest.mark.parametrize("sentence, error_item_reference", param_sets, ids=param_sets_ids)
+@pytest.mark.parametrize("recording, error_item_reference", param_sets, ids=param_sets_ids)
 def test_grammatical_evaluate_content(error_items_list: List[List[ErrorItem]],
                                       request,
-                                      sentence: str,
+                                      recording: Recording,
                                       error_item_reference: dict[str: ErrorItem]
                                       ):
     """
@@ -109,9 +118,17 @@ def test_grammatical_evaluate_content(error_items_list: List[List[ErrorItem]],
     error_items = error_items_list[param_index]
     for error_item in error_items:
         ref_error_item: ErrorItem = error_item_reference.get(error_item.error, None)
-        assert ref_error_item is not None, f"LLM yielded error '{error_item.error}', that is not defined reference error. Input sentence: '{sentence}'"
-        assert error_item.category == ref_error_item.category, f"LLM yielded error category '{error_item.category}' that is unequal to reference '{ref_error_item.category}'. Input sentence: '{sentence}'"
-        assert error_item.correction == ref_error_item.correction, f"LLM yielded error correction '{error_item.category}' that is unequal to reference '{ref_error_item.category}'. Input sentence: '{sentence}'"
+        assert ref_error_item is not None, (
+            f"LLM yielded error '{error_item.error}', that is not defined reference error. "
+            f"Input sentence: '{list(recording.texts_timestamps.keys())[0]}'")
+        assert error_item.category == ref_error_item.category, (
+            f"LLM yielded error category '{error_item.category}' that "
+            f"is unequal to reference '{ref_error_item.category}'. "
+            f"Input sentence: '{list(recording.texts_timestamps.keys())[0]}'")
+        assert error_item.correction == ref_error_item.correction, (
+            f"LLM yielded error correction '{error_item.category}' "
+            f"that is unequal to reference '{ref_error_item.category}'. "
+            f"Input sentence: '{list(recording.texts_timestamps.keys())[0]}'")
 
 
 @pytest.mark.parametrize("summary, ref_eval_metric", [
@@ -130,14 +147,19 @@ def test_summary_evaluate(summary_evaluator: SummaryEvaluator, summary: str, ref
     """
     Tests if LLM found summary evaluation items for each metric and compares the scores of each metric to a reference
     """
-    summary_evaluations: SummaryEvaluations = summary_evaluator.evaluate(summary)
+    recording = Recording()
+    recording.texts_timestamps = {summary: 0.0}
+    summary_evaluator.set_recording(recording)
+    summary_evaluations: SummaryEvaluations = summary_evaluator.evaluate()
     for summary_eval_item in summary_evaluations.evaluations:
         min_score: int = ref_eval_metric.get(summary_eval_item.metric)[0]
         max_score: int = ref_eval_metric.get(summary_eval_item.metric)[1]
         assert summary_eval_item.score is not None, f"LLM could not yield summary evaluation score"
         assert summary_eval_item.metric is not None, f"LLM could not yield summary evaluation metric"
         assert summary_eval_item.reason is not None, f"LLM could not yield summary evaluation reason"
-        assert summary_eval_item.score >= min_score, (f"Score of {summary_eval_item.score} for metric {summary_eval_item.metric} "
-                                                      f"is below minimum {str(min_score)}")
-        assert summary_eval_item.score <= max_score, (f"Score of {summary_eval_item.score} for metric {summary_eval_item.metric} "
-                                                      f"is above maximum {str(max_score)}")
+        assert summary_eval_item.score >= min_score, (
+            f"Score of {summary_eval_item.score} for metric {summary_eval_item.metric} "
+            f"is below minimum {str(min_score)}")
+        assert summary_eval_item.score <= max_score, (
+            f"Score of {summary_eval_item.score} for metric {summary_eval_item.metric} "
+            f"is above maximum {str(max_score)}")
