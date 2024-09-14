@@ -11,6 +11,7 @@ from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplat
 from app.models.pydantic.sessions import Recording
 from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, grammatical_errors_schema, \
     summary_evaluation_item_schema, ModelFieldNotFoundError, ErrorItem
+from services.converters import Audio2TextConverter
 from static.summary_metrics import evaluation_metrics
 
 # init module logger
@@ -198,6 +199,7 @@ class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
 
 class TextEvaluator(ABC):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
+        self._audio2text_converter: Audio2TextConverter = None
         self._recording: Recording = None
         self._llm: BaseLanguageModel = llm
         self._chain_comps = chain_comps
@@ -211,7 +213,13 @@ class TextEvaluator(ABC):
     def set_recording(self, recording: Recording):
         self._recording = recording
 
+    def set_audio2text_converter(self, audio2text_converter: Audio2TextConverter):
+        self._audio2text_converter = audio2text_converter
+
     def evaluate(self) -> BaseModel:
+        ...
+
+    def process_recording(self) -> None:
         ...
 
 
@@ -237,7 +245,7 @@ class GrammaticalEvaluator(TextEvaluator):
 class SummaryEvaluator(TextEvaluator):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper, document: str):
         super().__init__(llm, chain_comps)
-        self._document: str = document
+        self._document: str = document # this is the document against which the student's summary will be compared to
 
     def evaluate(self) -> SummaryEvaluations:
         """

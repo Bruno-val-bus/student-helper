@@ -1,4 +1,4 @@
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 from pydantic import BaseModel
 
 
@@ -25,7 +25,7 @@ class Recording(BaseModel):
     audio_file_path: Optional[str] = None
     status: Optional[RecordingStatus] = None
     evaluation: Optional[BaseModel] = None
-    texts_timestamps: Optional[Dict[str, float]] = None
+    texts_timestamps: Optional[Dict[str, Tuple[float, float]]] = None
     audio_segments_paths: Optional[List[str]] = None
 
 
