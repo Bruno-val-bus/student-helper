@@ -5,7 +5,7 @@ llm_parser: # "schema" , "model"
   COMPREHENSION: "model"
   LANGUAGE_PRODUCTION: "model"
 
-llm:
+evaluator:
   ONLINE_OPENAI_GPT3:
     LOCAL_MODEL: False
     MODEL_PROVIDER: "OpenAI"
@@ -22,6 +22,33 @@ llm:
     MODEL_NAME: "llama3:8b"
     OLLAMA_HOST: "ollama"
     OLLAMA_PORT: 11434
+
+transcriber:
+  ONLINE_OPENAI_WHISPER:
+    MODEL_PROVIDER: "OpenAI"
+    MODEL_NAME: "whisper-1"
+    LANGUAGE: "af"
+    RESPONSE_FORMAT: "json"
+    TEMPERATURE: 0
+
+  OFFLINE_OPENAI_WHISPER:
+    MODEL_NAME: "Systran/faster-distil-whisper-large-v3"
+    DUMMY_API_KEY: "sk-6teserrsdf"
+    RESPONSE_FORMAT: "json" #"text", "json", "verbose_json"
+    LANGUAGE: "af"
+    BASE_URL: "http://localhost:8000/v1/"
+
+  ONLINE_LELAPA_VULAVULA:
+    MODEL_NAME: "Vulavula"
+    LANGUAGE: "afr"
+
+diarizer:
+  OFFLINE_PYANNOTE:
+    MODEL_NAME: "pyannote/speaker-diarization-3.1"
+    DEVICE: "cpu"
+    RTTM_PATH: "audio.rttm"
+
+
 
 logging:
   version: 1

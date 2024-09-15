@@ -1,40 +1,83 @@
+from abc import ABC, abstractmethod
+from typing import Optional
+
 import yaml
 import logging.config
 from dataclasses import dataclass
 
-
 @dataclass
-class Config:
-    def __init__(self, target_file: str, setup_name: str = 'ONLINE_OPENAI_GPT3'):
+class IConfiguration(ABC):
+    def __init__(self, target_file: str):
         self._file = target_file
-        self._setup_name = setup_name
-        self._config_dict = None
+        self._config_dict: Optional[dict] = None
+        self._evaluator_setup: Optional[str] = None
+        self._transcriber_setup: Optional[str] = None
+        self._diarizer_setup: Optional[str] = None
 
-        self._load_yaml_configs()
-        self._set_logger()
+    @abstractmethod
+    def set_defaults(self):
+        pass
+
+    def _set_evaluator(self, evaluator_llm_name: str):
+        self._evaluator_setup = evaluator_llm_name
+
+    def _set_transcriber(self, transcriber_llm_name: str):
+        self._transcriber_setup = transcriber_llm_name
+
+    def _set_diarizer(self, diarizer_ml_name: str):
+        self._diarizer_setup = diarizer_ml_name
+
+    # getters
+    def get_eval_setup_name(self):
+        return self._evaluator_setup
+
+    def get_eval_setup(self):
+        return self._config_dict['evaluator'][self._evaluator_setup]
+
+    def get_transcriber_setup_name(self):
+        return self._transcriber_setup
+
+    def get_transcriber_setup(self):
+        return self._config_dict['transcriber'][self._transcriber_setup]
+
+    def get_diarizor_setup_name(self):
+        return self._diarizer_setup
+
+    def get_diarizor_setup(self):
+        return self._config_dict['diarizer'][self._diarizer_setup]
+
+    def get_eval_output_parser_type(self, recording_type: str):
+        return self._config_dict['llm_parser'][recording_type]
 
     def _load_yaml_configs(self):
         try:
             with open(self._file, 'r') as file:
                 try:
                     self._config_dict = yaml.safe_load(file)
-                except:
-                    print("Error trying to load the config file in YAML format")
-        except:
-            print("Error trying to open the configuration file")
+                except Exception as e:
+                    print("Error trying to load the config file in YAML format, %s", e)
+        except Exception as e:
+            print("Error trying to open the configuration file, %s", e)
 
     def _set_logger(self):
         logging.config.dictConfig(self._config_dict['logging'])
 
-    # getters
-    def get_llm_setup_name(self):
-        return self._setup_name
 
-    def get_llm_setup_params(self):
-        return self._config_dict['llm'][self._setup_name]
+@dataclass
+class ReadingEvaluationConfiguration(IConfiguration):
+    def __init__(self, target_file: str):
+        super().__init__(target_file)
 
-    def get_llm_output_parser_type(self, recording_type: str):
-        return self._config_dict['llm_parser'][recording_type]
+    def set_defaults(self):
+        self._load_yaml_configs()
+        self._set_logger()
+
+        self._set_evaluator("ONLINE_OPENAI_GPT3")
+        self._set_transcriber("ONLINE_LELAPA_VULAVULA")
+        self._set_diarizer("OFFLINE_PYANNOTE")
+
+
+
 
 
 class ColoredFormatter(logging.Formatter):

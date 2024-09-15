@@ -1,62 +1,64 @@
 from abc import ABC
-from typing import Union
+from typing import Optional
 
 from app.models.pydantic.sessions import Recording
-from services.diarizers import IDiarization, MultiFileDiarization, SingleFileDiarization
-from services.transcribers import ITranscription, VulaVulaTranscription, WhisperTranscription
+from configs.configurator import IConfiguration, ReadingEvaluationConfiguration
+from services.diarizers import IDiarization, SingleFileDiarization, PyannoteMultiFileDiarization
+from services.transcribers import WhisperTranscription, ITranscription, VulaVulaTranscription
 
 
 class Audio2TextConverter(ABC):
 
     def __init__(self):
-        self._diarization_module: Union[IDiarization, None] = None
-        self._transcription_module: Union[ITranscription, None] = None
-        self._recording: Recording = Union[Recording, None]
+        self._configuration: Optional[IConfiguration] = None
+        self._diarization_module: Optional[IDiarization] = None
+        self._transcription_module: Optional[ITranscription] = None
+        self._recording: Optional[Recording] = None
 
-    def set_diarization_module(self, diarization_module) -> None:
+    def set_diarization_module(self, diarization_module: IDiarization) -> None:
         self._diarization_module = diarization_module
 
-    def set_transcription_module(self, transcription_module) -> None:
+    def set_transcription_module(self, transcription_module: ITranscription) -> None:
         self._transcription_module = transcription_module
 
     def set_recording(self, recording: Recording) -> None:
         self._recording = recording
 
     def convert(self):
-        ...
+        pass
+
+    def _recording_is_diarized(self):
+        if self._recording.audio_segments_paths is None:
+            return False
+        return True
 
 
 class Audio2DiarizedSegments(Audio2TextConverter):
-    """Class is responsible for creating multiple audio files for one speaker and based on each file assign a timestamp to a text segment. The result is saved in the Recording object in the texts_timestamps attribute"""
+    """
+    Class is responsible for creating multiple audio files for one speaker (future work: identifies multiple speakers).
+    The result is saved in the Recording Object
+    """
 
     def __init__(self):
         super().__init__()
-        self._diarization_module: Union[MultiFileDiarization, None] = None
-        self._transcription_module: Union[VulaVulaTranscription, None] = None
-        self._recording: Recording = Union[Recording, None]
 
     def convert(self):
-        """
-        TODO
-        if self._recording_is_diarized():
-            # produce "diarized" files, return their paths and save them to recording object
-            diarized_audios_paths: list[str] = self.diarization_module.diarize(self.recording.audio_file_path)
-            self.recording.audio_segments_paths = diarized_audios_paths
+        if not self._recording_is_diarized():
+            # produce path of "diarized" files (i.e. files where the identified speaker speaks)
+            diarized_audios_paths: list[str] = self._diarization_module.diarize(self._recording.audio_file_path)
+            self._recording.audio_segments_paths = diarized_audios_paths
 
-        for path in self.recording.audio_segments_paths:
-            # transcribe the diarized paths
-            transcribed_audio_timestamps: dict[str: float] = self.transcription_module.transcribe(path)
-            transcribed_audio = transcribed_audio_timestamps.keys()[0]
-            # maybe extract timestamp from path?
-            time_stamp = path
+        for path in self._recording.audio_segments_paths:
+            # for each audio, transcribe it
+            transcribed_audio_timestamps: dict[str, tuple[float, float]] = self._transcription_module.transcribe(path)
+            transcribed_audio = transcribed_audio_timestamps.keys()
             # save them to recording object
             self.recording.texts_timestamps.update
-            {transcribed_audio: time_stamp}
-        """
 
 
 class Audio2TimestampedSegments(Audio2TextConverter):
     """Class is responsible for creating one file and via whisper model extract the timestamp to text. The result is saved in the Recording object in the texts_timestamps attribute"""
+
     def __init__(self):
         super().__init__()
         self._diarization_module: Union[SingleFileDiarization, None] = None

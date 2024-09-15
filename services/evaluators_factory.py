@@ -25,7 +25,7 @@ class TextEvaluatorFactory:
 
     def get_evaluator(self) -> TextEvaluator:
         llm = self.get_llm()
-        output_parser_type = self._config.get_llm_output_parser_type(self._recording_type)
+        output_parser_type = self._config.get_eval_output_parser_type(self._recording_type)
         processor: TextEvaluator
         try:
             if self._recording_type == RecordingType.COMPREHENSION:
@@ -61,28 +61,28 @@ class TextEvaluatorFactory:
         try:
             llm: BaseLanguageModel
             # Use predefined config to choose what LLM to use
-            if self._config.get_llm_setup_name() == "ONLINE_OPENAI_GPT3":
-                llm_setup = self._config.get_llm_setup_params()
+            if self._config.get_eval_setup_name() == "ONLINE_OPENAI_GPT3":
+                llm_setup = self._config.get_eval_setup()
                 env_path = os.path.join(os.getcwd(), ".env")
                 load_dotenv(env_path)
                 llm: ChatOpenAI = ChatOpenAI(temperature=llm_setup['TEMPERATURE'],
                                              model_name=llm_setup['MODEL_NAME'],
                                              openai_api_key=os.environ["OPENAI_API_KEY"])
 
-            elif self._config.get_llm_setup_name() == "LOCAL_OLLAMA_LLAMA3":
+            elif self._config.get_eval_setup_name() == "LOCAL_OLLAMA_LLAMA3":
                 # host llm on localhost
-                llm_setup = self._config.get_llm_setup_params()
+                llm_setup = self._config.get_eval_setup()
                 llm = ollama.Ollama(model=llm_setup['MODEL_NAME'])
 
-            elif self._config.get_llm_setup_name() == "LOCAL_DOCKER_OLLAMA_LLAMA3":
+            elif self._config.get_eval_setup_name() == "LOCAL_DOCKER_OLLAMA_LLAMA3":
                 # host llm in docker network
-                llm_setup = self._config.get_llm_setup_params()
+                llm_setup = self._config.get_eval_setup()
                 host = llm_setup['OLLAMA_HOST']
                 port = llm_setup['OLLAMA_PORT']
                 llm = ollama.Ollama(model=llm_setup['MODEL_NAME'],
                                     base_url=f'http://{host}:{port}')
             else:
-                raise NotImplementedError(f"Model setup {self._config.get_llm_setup_name()} is not supported.")
+                raise NotImplementedError(f"Model setup {self._config.get_eval_setup()} is not supported.")
             return llm
 
         except NotImplementedError as e:
