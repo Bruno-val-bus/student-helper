@@ -11,10 +11,7 @@ class ConverterFactory:
         configuration.set_defaults()
 
         converter = Audio2DiarizedSegments()
-        diarizor = PyannoteMultiFileDiarization(configuration.get_diarizor_setup_name(),
-                                                configuration.get_diarizor_setup()['MODEL_NAME'],
-                                                configuration.get_diarizor_setup()['DEVICE'],
-                                                configuration.get_diarizor_setup()['RTTM_PATH'])
+        diarizor = PyannoteMultiFileDiarization(configuration.get_diarizor_setup_name())
         transcriber = VulaVulaTranscription(configuration.get_transcriber_setup_name(),
                                             configuration.get_transcriber_setup()['MODEL_NAME'],
                                             configuration.get_transcriber_setup()['LANGUAGE'])

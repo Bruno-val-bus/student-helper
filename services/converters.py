@@ -2,9 +2,9 @@ from abc import ABC
 from typing import Optional
 
 from app.models.pydantic.sessions import Recording
-from configs.configurator import IConfiguration, ReadingEvaluationConfiguration
-from services.diarizers import IDiarization, SingleFileDiarization, PyannoteMultiFileDiarization
-from services.transcribers import WhisperTranscription, ITranscription, VulaVulaTranscription
+from configs.configurator import IConfiguration
+from services.diarizers import IDiarization, SingleFileDiarization
+from services.transcribers import WhisperTranscription, ITranscription
 
 
 class Audio2TextConverter(ABC):
@@ -53,11 +53,13 @@ class Audio2DiarizedSegments(Audio2TextConverter):
             transcribed_audio_timestamps: dict[str, tuple[float, float]] = self._transcription_module.transcribe(path)
             transcribed_audio = transcribed_audio_timestamps.keys()
             # save them to recording object
+            #TODO!
             self.recording.texts_timestamps.update
 
 
+"""
 class Audio2TimestampedSegments(Audio2TextConverter):
-    """Class is responsible for creating one file and via whisper model extract the timestamp to text. The result is saved in the Recording object in the texts_timestamps attribute"""
+    Class is responsible for creating one file and via whisper model extract the timestamp to text. The result is saved in the Recording object in the texts_timestamps attribute
 
     def __init__(self):
         super().__init__()
@@ -66,6 +68,6 @@ class Audio2TimestampedSegments(Audio2TextConverter):
         self._recording: Recording = Union[Recording, None]
 
     def convert(self):
-        """
+        
         TODO
-        """
+"""
