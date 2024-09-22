@@ -1,13 +1,14 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Optional, Type
+import re
 import torch
 import torchaudio
 from pyannote.audio import Pipeline
 from pydub import AudioSegment
 
-from configs.configurator import ReadingEvaluationConfiguration, IConfiguration
+from configs.configurator import IConfiguration
 
 # init module logger
 logger = logging.getLogger(__name__)
@@ -16,31 +17,52 @@ logger = logging.getLogger(__name__)
 class IDiarization(ABC):
 
     def __init__(self):
-        self._config: Optional[IConfiguration] = None
+        self.list_segmented: Optional[List[str]] = None
 
     @abstractmethod
-    def _set_config(self):
+    def set_config(self):
         pass
 
     @abstractmethod
-    def diarize(self, origin_audio_file_path: str) -> List[str]:
+    def diarize(self, origin_audio_file_path: str) -> list[str]:
         pass
+
+    @abstractmethod
+    def diarize_targeted(self, origin_audio_file_path: str, target_speaker: int):
+        pass
+
+    def _set_list_segmented(self, list_segmented: List[str]):
+        self.list_segmented = list_segmented
+
+    def _get_list_segmented(self) -> List[str]:
+        return self.list_segmented
 
 
 class PyannoteMultiFileDiarization(IDiarization):
-    def __init__(self, setup_name: str, model_name: str, device: str, rttm_path: str):
+    def __init__(self, setup_name: str):
         super().__init__()
-        self.llm_diarization: Optional[Pipeline] = None
         self.setup_name = setup_name
-        self.model_name = model_name
-        self.device = device
-        self.rttm_path = rttm_path
-        self._set_config()
+        self.llm_diarization: Optional[Pipeline] = None
+        self.list_segmented: Optional[List[str]] = None
+        self.model_name = None
+        self.rttm_path = None
+        self.device = None
 
-    def _set_config(self):
+    def set_model_name(self, model_name: str,):
+        self.model_name = model_name
+
+    def set_rrtm_path(self, rttm_path: str):
+        self.rttm_path = rttm_path
+
+    def set_device(self, device: str = "cpu"):
+        self.device = device
+
+
+    def set_config(self):
         """
         Sets the configuration for diarization with Pyannote running locally
         """
+
         if self.setup_name == "LOCAL_PYANNOTE":
             self.llm_diarization = Pipeline.from_pretrained(
                 self.model_name,
@@ -50,13 +72,65 @@ class PyannoteMultiFileDiarization(IDiarization):
                 self.llm_diarization.to(torch.device(self.device))
         logger.info(f"Diarizor Module set for set up: {self.setup_name}")
 
-    def diarize(self, origin_audio_file_path) -> list[str]:
+    def diarize_targeted(self, origin_audio_file_path: str, target_speaker: int) -> List[str]:
+        """
+        Diarize audio file and filter results of set target
+
+        :param origin_audio_file_path: File containing original audio
+        :param target_speaker: which speaker is targeted
+        :return: A list of audio paths, where targeted speaker talks
+        """
+        self.diarize(origin_audio_file_path)
+
+        # Ensure target is formatted as a two-digit string
+        target_number = f"{int(target_speaker):02}"
+
+        # Regular expression pattern to capture the number in the format _XX_
+        pattern = re.compile(r'SPEAKER_([0-9]{2})_')
+
+        # List to store filtered results
+        filtered_files = []
+
+        # Iterate through each file name
+        for file in self.list_segmented:
+            match = pattern.search(file)
+            if match:
+                # Extract the number as an integer
+                number = f"{int(match.group(1)):02}"
+                if number == target_number:
+                    filtered_files.append(file)
+
+        # Overwrite list_segmented to only contain the filtered files
+        self.list_segmented = filtered_files
+        return self.list_segmented
+
+    def diarize(self, origin_audio_file_path) -> List[str]:
         """
             Diarize audio by using pyannote ml model, and saving the results into a .rttm file, returning a List of Paths
             for the segmented Audio
         """
 
-        list_segmented = [str]
+        # Audio was manually diarized via google colab script
+        if self.setup_name == "LOCAL_PYANNOTE_MANUAL":
+            directory_path = os.path.dirname(origin_audio_file_path)
+
+            try:
+                # Iterate over files in the directory
+                for file_name in os.listdir(directory_path):
+                    # Check if the file starts with 'audiosegment_'
+                    if file_name.startswith('audiosegment_'):
+                        self.list_segmented.append(os.path.join(directory_path, file_name))
+
+                return self.list_segmented
+
+            except NotADirectoryError as e:
+                logger.error("(PyannoteMultiFileDiarization): Not a directory, %s", e)
+                return e
+
+            except Exception as e:
+                logger.error("(PyannoteMultiFileDiarization): %s", e)
+                return e
+
         if self.setup_name == "LOCAL_PYANNOTE":
             audio_path = origin_audio_file_path
 
@@ -90,7 +164,7 @@ class PyannoteMultiFileDiarization(IDiarization):
                                                        f'segmented/audiosegment_{seg_speaker}_{seg_start}_{seg_end}.wav')
 
                 try:
-                    # create a new audio file based on segment
+                    # export a new segmented audio file
                     empty = AudioSegment.empty()
                     empty = empty.append(audio[seg_start:seg_end], crossfade=0)
                     empty.export(audio_segment_file_name, format="wav")
@@ -98,9 +172,9 @@ class PyannoteMultiFileDiarization(IDiarization):
                     logger.exception(f"Could not create segmented audio for segment: {audio_segment_file_name}, %s", e)
 
                 # after successful export, add path to list
-                list_segmented.append(audio_segment_file_name)
+                self.list_segmented.append(audio_segment_file_name)
 
-            return list_segmented
+            return self.list_segmented
 
 
 class SingleFileDiarization(IDiarization):
