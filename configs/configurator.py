@@ -1,31 +1,55 @@
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Optional, Literal
 
 import yaml
 import logging.config
 from dataclasses import dataclass
 
+logger = logging.getLogger(__name__)
+
+
 @dataclass
 class IConfiguration(ABC):
     def __init__(self, target_file: str):
-        self._file = target_file
+        super().__init__()
+        self._file: str = target_file
         self._config_dict: Optional[dict] = None
-        self._evaluator_setup: Optional[str] = None
-        self._transcriber_setup: Optional[str] = None
-        self._diarizer_setup: Optional[str] = None
+        self._evaluator_setup: Literal['ONLINE_OPENAI_GPT3', 'LOCAL_OLLAMA_LLAMA3', 'LOCAL_DOCKER_OLLAMA_LLAMA3', None] = None
+        self._transcriber_setup: Literal['ONLINE_OPENAI_WHISPER', 'OFFLINE_OPENAI_WHISPER', 'ONLINE_LELAPA_VULAVULA', None] = None
+        self._diarizer_setup: Literal['OFFLINE_PYANNOTE', 'LOCAL_PYANNOTE_MANUAL', None] = None
+        self._load_yaml_configs()
+        self._set_logger()
 
     @abstractmethod
     def set_defaults(self):
         pass
 
-    def _set_evaluator(self, evaluator_llm_name: str):
-        self._evaluator_setup = evaluator_llm_name
+    def set_evaluator(self, evaluator_setup_name: str):
+        allowed_setups = self._get_available_evaluator_setups()
+        if evaluator_setup_name not in allowed_setups:
+            logger.error(f"(IConfiguration): Invalid evaluator setup name: {evaluator_setup_name}")
+            raise ValueError(f"Invalid evaluator setup name: {evaluator_setup_name}.")
 
-    def _set_transcriber(self, transcriber_llm_name: str):
-        self._transcriber_setup = transcriber_llm_name
+        self._evaluator_setup = evaluator_setup_name
+        logger.info("Evaluator setup successfully set to: %s", evaluator_setup_name)
 
-    def _set_diarizer(self, diarizer_ml_name: str):
-        self._diarizer_setup = diarizer_ml_name
+    def set_transcriber(self, transcriber_setup_name: str):
+        allowed_setups = self._get_available_transcriber_setups()
+        if transcriber_setup_name not in allowed_setups:
+            logger.error(f"(IConfiguration): Invalid transcriber setup name: {transcriber_setup_name}")
+            raise ValueError(f"Invalid transcriber setup name: {transcriber_setup_name}.")
+
+        self._transcriber_setup = transcriber_setup_name
+        logger.info("Transcriber successfully set to: %s", transcriber_setup_name)
+
+    def set_diarizer(self, diarizer_setup_name: str):
+        allowed_setups = self._get_available_diarizer_setups()
+        if diarizer_setup_name not in allowed_setups:
+            logger.error(f"(IConfiguration): Invalid diarizer setup name: {diarizer_setup_name}")
+            raise ValueError(f"Invalid diarizer setup name: {diarizer_setup_name}.")
+
+        self._diarizer_setup = diarizer_setup_name
+        logger.info("Diarizer successfully set to: %s", diarizer_setup_name)
 
     # getters
     def get_eval_setup_name(self):
@@ -62,6 +86,24 @@ class IConfiguration(ABC):
     def _set_logger(self):
         logging.config.dictConfig(self._config_dict['logging'])
 
+    def _get_available_evaluator_setups(self):
+        eval_setups = []
+        for key in self._config_dict['evaluator']:
+            eval_setups.append(key)
+        return eval_setups
+
+    def _get_available_transcriber_setups(self):
+        trans_setups = []
+        for key in self._config_dict['transcriber']:
+            trans_setups.append(key)
+        return trans_setups
+
+    def _get_available_diarizer_setups(self):
+        dia_setups = []
+        for key in self._config_dict['diarizer']:
+            dia_setups.append(key)
+        return dia_setups
+
 
 @dataclass
 class ReadingEvaluationConfiguration(IConfiguration):
@@ -69,15 +111,9 @@ class ReadingEvaluationConfiguration(IConfiguration):
         super().__init__(target_file)
 
     def set_defaults(self):
-        self._load_yaml_configs()
-        self._set_logger()
-
-        self._set_evaluator("ONLINE_OPENAI_GPT3")
-        self._set_transcriber("ONLINE_LELAPA_VULAVULA")
-        self._set_diarizer("OFFLINE_PYANNOTE")
-
-
-
+        self.set_evaluator("ONLINE_OPENAI_GPT3")
+        self.set_transcriber("ONLINE_LELAPA_VULAVULA")
+        self.set_diarizer("LOCAL_PYANNOTE_MANUAL")
 
 
 class ColoredFormatter(logging.Formatter):

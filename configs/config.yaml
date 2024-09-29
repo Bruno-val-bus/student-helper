@@ -28,7 +28,7 @@ transcriber:
     MODEL_PROVIDER: "OpenAI"
     MODEL_NAME: "whisper-1"
     LANGUAGE: "af"
-    RESPONSE_FORMAT: "json"
+    RESPONSE_FORMAT: "verbose_json"
     TEMPERATURE: 0
 
   OFFLINE_OPENAI_WHISPER:
@@ -47,6 +47,12 @@ diarizer:
     MODEL_NAME: "pyannote/speaker-diarization-3.1"
     DEVICE: "cpu"
     RTTM_PATH: "audio.rttm"
+    INIT_LIST: []
+
+  LOCAL_PYANNOTE_MANUAL:
+    INIT_LIST: []
+
+
 
 
 
