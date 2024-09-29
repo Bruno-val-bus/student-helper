@@ -9,7 +9,7 @@ from services.diarizers import PyannoteMultiFileDiarization
 
 logger = logging.getLogger(__name__)
 
-diarized_dir = "../../static/audio/blinklappies_06_08_2024"
+diarized_dir = "../../static/audio/student_audio/blinklappies_06_08_2024"
 multi_speaker_recording = Recording()
 multi_speaker_recording.audio_file_path = os.path.join(diarized_dir, f"{os.path.basename(diarized_dir)}.mp3")
 
@@ -53,7 +53,7 @@ class TestPyannoteMultiFileDiarization:
     @pytest.fixture(scope="session")
     def pyannote_multi_file_manual_diarizor(self):
         configuration = ReadingEvaluationConfiguration("../../configs/config.yaml")
-        configuration._set_diarizer("LOCAL_PYANNOTE_MANUAL")
+        configuration.set_diarizer("LOCAL_PYANNOTE_MANUAL")
         diarizor = PyannoteMultiFileDiarization(configuration.get_diarizor_setup_name())
         diarizor._set_list_segmented(configuration.get_diarizor_setup()['INIT_LIST'])
         return diarizor

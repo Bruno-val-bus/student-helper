@@ -10,10 +10,10 @@ from services.transcribers import VulaVulaTranscription, WhisperTranscription
 logger = logging.getLogger(__name__)
 
 recording_child1 = Recording()
-recording_child1.audio_file_path = "../../static/audio/blinklappies_06_08_2024/audiosegment_SPEAKER_01_44260_76086.wav"
+recording_child1.audio_file_path = "../../static/audio/student_audio/blinklappies_06_08_2024/audiosegment_SPEAKER_01_44260_76086.wav"
 
 recording_baseline = Recording()
-recording_baseline.audio_file_path = "../../static/audio/blinklappies_baseline_audio/blinklappies_baseline_audio.opus"
+recording_baseline.audio_file_path = "../../static/audio/student_audio/blinklappies_baseline_audio/blinklappies_baseline_audio.opus"
 
 vulavula_ideal_transcription = [("So in 1 van die 2 maande raak ek 11 jaar oud oumamalan.se toe ouma so groot was, het hy al "
                               "op die plaas gewerk. Oupa het nie ge geboorte geboorte met skool of wiskunde nie. Ek weet "
@@ -58,7 +58,7 @@ class TestVulaVula:
     @pytest.fixture(scope="session")
     def vulavula_transcriber(self):
         configuration = ReadingEvaluationConfiguration("../../configs/config.yaml")
-        configuration._set_transcriber("ONLINE_LELAPA_VULAVULA")
+        configuration.set_transcriber("ONLINE_LELAPA_VULAVULA")
 
         transcriber = VulaVulaTranscription(configuration.get_transcriber_setup_name(),
                                             configuration.get_transcriber_setup()['MODEL_NAME'],
@@ -66,7 +66,8 @@ class TestVulaVula:
 
         return transcriber
 
-    @pytest.mark.parametrize("audio_input,expected", [(recording_baseline.audio_file_path, recording_baseline_ideal_transcription)])
+    @pytest.mark.parametrize("audio_input,expected", [(recording_child1.audio_file_path, ideal_whisper_segments),
+                                                      (recording_baseline.audio_file_path, recording_baseline_ideal_transcription)])
     def test_vulavula_accuracy(self, vulavula_transcriber, audio_input, expected):
         """
         Tests if vulavula transcriber transcribes at expected accuaracy after being configured
@@ -90,14 +91,13 @@ class TestOnlineWhisper:
     @pytest.fixture(scope="session")
     def online_whipser_transcriber(self):
         configuration = ReadingEvaluationConfiguration("../../configs/config.yaml")
-        configuration._set_transcriber("ONLINE_OPENAI_WHISPER")
+        configuration.set_transcriber("ONLINE_OPENAI_WHISPER")
         transcriber = WhisperTranscription(configuration.get_transcriber_setup_name(),
                                            configuration.get_transcriber_setup()['MODEL_NAME'],
                                            configuration.get_transcriber_setup()['LANGUAGE'],
                                            configuration.get_transcriber_setup()['RESPONSE_FORMAT'],
                                            configuration.get_transcriber_setup()['TEMPERATURE'],
                                            )
-        transcriber._set_transcribed_audio_timestamps({})
         return transcriber
 
     @pytest.mark.parametrize("audio_input,expected", [(recording_child1.audio_file_path, ideal_whisper_segments)])

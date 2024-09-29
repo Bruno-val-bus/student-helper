@@ -18,7 +18,7 @@ class ITranscription(ABC):
 
     @abstractmethod
     def __init__(self):
-        self.transcribed_audio_timestamps: Optional[dict[str, tuple[float, float]]] = None
+        self.transcribed_audio_timestamps: Optional[dict[str, tuple[float, float]]] = {}
 
     @abstractmethod
     def transcribe(self, audio_file_path: str) -> dict[str, tuple[float, float]]:
@@ -26,6 +26,41 @@ class ITranscription(ABC):
 
     def _set_transcribed_audio_timestamps(self, transcribed_audio_timestamps: dict[str, tuple[float, float]]):
         self.transcribed_audio_timestamps = transcribed_audio_timestamps
+
+    @staticmethod
+    def _convert_audio_to_wav(audio_file_path: str):
+        logger.debug("(ITranscription): Starting conversion of %s to .wav file", audio_file_path)
+        if not os.path.isfile(audio_file_path):
+            logger.error(f"(ITranscription): The file does not exist, {audio_file_path}")
+            raise FileNotFoundError(f"(ITranscription): The file does not exist, %s", audio_file_path)
+
+        # Determine the file format based on the file extension
+        file_extension = os.path.splitext(audio_file_path)[1].lower()
+
+        # Supported formats for pydub
+        supported_formats = [".mp3", ".mp4", ".flv", ".ogg", ".wma", ".aac", ".m4a", ".wav", ".flac", ".amr", ".opus"]
+
+        if file_extension not in supported_formats:
+            logger.error(f"(ITranscription): The file format is not supported, {file_extension}")
+            raise ValueError(f"(ITranscription): The file format is not supported, {file_extension}")
+
+        try:
+            # Load the audio file using pydub
+            audio = AudioSegment.from_file(audio_file_path)  # Remove the dot from extension
+            output_file_path = os.path.splitext(audio_file_path)[0] + '.wav'
+
+            # Check if the output file already exists
+            if os.path.exists(output_file_path):
+                logger.debug(f"(ITranscription): Overwriting existing file '{output_file_path}'.")
+
+            # Export the audio to WAV format
+            audio.export(output_file_path, format="wav")
+            logger.debug(f"(ITranscription): Converted '{audio_file_path}' to '{output_file_path}'.")
+
+        except Exception as e:
+            logger.error(f"(ITranscription): An error occurred during conversion of {audio_file_path}")
+            raise Exception(f"An error occurred during conversion: {str(e)}")
+        return output_file_path
 
 
 class WhisperTranscription(ITranscription):
@@ -117,6 +152,13 @@ class VulaVulaTranscription(ITranscription):
     def transcribe(self, audio_file_path: str) -> dict[str, tuple[float, float]]:
         if os.path.isfile(audio_file_path):
             try:
+                # Get the file extension
+                _, file_extension = os.path.splitext(audio_file_path)
+
+                # Check if the extension is '.wav'
+                if file_extension.lower() != '.wav':
+                    audio_file_path = self._convert_audio_to_wav(audio_file_path)
+
                 upload_id, transcription_result = self.vulavula_client.transcribe(audio_file_path,
                                                                                   language_code=self.language)
                 logger.info(f"Starting Transcription for {self.setup_name}",
@@ -164,3 +206,4 @@ class VulaVulaTranscription(ITranscription):
         else:
             logger.warning("(VulaVulaTranscription): Not a file: %s", audio_file_path)
             return FileNotFoundError
+
