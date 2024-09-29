@@ -138,7 +138,7 @@ packaging==23.2
     # via
     #   langchain-core
     #   marshmallow
-pydantic==2.7.0
+pydantic~=1.10.17
     # via
     #   fastapi
     #   langchain
@@ -222,3 +222,9 @@ websockets==12.0
     # via uvicorn
 yarl==1.9.4
     # via aiohttp
+
+pytest~=8.2.2
+torch~=2.4.0
+torchaudio~=2.4.0
+pydub~=0.25.1
+vulavula~=0.4.0
