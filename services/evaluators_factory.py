@@ -11,7 +11,7 @@ from app.models.pydantic.sessions import RecordingType
 from .evaluators import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, \
     SummaryEvaluator, SchemaSummaryChainWrapper, ChainWrapper, SchemaGrammaticalErrorsChainWrapper
 
-from configs.configurator import Config
+from configs.configurator import ReadingEvaluationConfiguration, IConfiguration
 
 # init module logger
 logger = logging.getLogger(__name__)
@@ -19,9 +19,15 @@ logger = logging.getLogger(__name__)
 
 class TextEvaluatorFactory:
 
-    def __init__(self, recording_type: str, config: Config):
+    def __init__(self, recording_type: str):
         self._recording_type: str = recording_type
+        self._config = ReadingEvaluationConfiguration("../configs/config.yaml")
+        self._config.set_defaults()
+
+    def set_evaluator_config(self, config: IConfiguration, evaluator_setup_name: str):
         self._config = config
+        self._config.set_evaluator(evaluator_setup_name)
+
 
     def get_evaluator(self) -> TextEvaluator:
         llm = self.get_llm()

@@ -2,7 +2,7 @@ import logging
 import os
 from typing import List, Union
 
-from configs.configurator import LlmConfigOptions, Config
+from configs.configurator import LlmConfigOptions, IConfiguration, ReadingEvaluationConfiguration
 from static.summary_metrics import RELEVANCE, COHERENCE, CONSISTENCY, FLUENCY
 import pytest
 
@@ -53,16 +53,17 @@ param_sets_ids = [f"Sentence with errors: '{sentence_1}'",
 
 
 @pytest.fixture(scope="session")
-def config() -> Config:
+def config() -> IConfiguration:
     setup_name = LlmConfigOptions.ONLINE_OPENAI_GPT3
     logger.info(f'Started evaluation testing using the %s setup', setup_name)
-    config = Config(CONFIG_FILE_PATH, setup_name)
+    config = ReadingEvaluationConfiguration(CONFIG_FILE_PATH)
+    config.set_evaluator(setup_name)
     return config
 
 
 @pytest.fixture(scope="session")
-def grammatical_evaluator(config: Config) -> Union[GrammaticalEvaluator, TextEvaluator]:
-    factory = TextEvaluatorFactory(RecordingType.LANGUAGE_PRODUCTION, config)
+def grammatical_evaluator(config: IConfiguration) -> Union[GrammaticalEvaluator, TextEvaluator]:
+    factory = TextEvaluatorFactory(RecordingType.LANGUAGE_PRODUCTION)
     grammatical_evaluator = factory.get_evaluator()
     return grammatical_evaluator
 
@@ -81,8 +82,8 @@ def error_items_list(grammatical_evaluator: GrammaticalEvaluator) -> List[List[E
 
 
 @pytest.fixture(scope="session")
-def summary_evaluator(config: Config) -> Union[SummaryEvaluator, TextEvaluator]:
-    factory = TextEvaluatorFactory(RecordingType.COMPREHENSION, config)
+def summary_evaluator(config: IConfiguration) -> Union[SummaryEvaluator, TextEvaluator]:
+    factory = TextEvaluatorFactory(RecordingType.COMPREHENSION)
     summary_evaluator = factory.get_evaluator()
     return summary_evaluator
 
