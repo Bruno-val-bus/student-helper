@@ -1,6 +1,6 @@
 import logging
 from abc import ABC, abstractmethod
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Tuple
 
 from langchain.pydantic_v1 import BaseModel
 from langchain.output_parsers import ResponseSchema, StructuredOutputParser
@@ -10,9 +10,11 @@ from langchain_core.prompts import HumanMessagePromptTemplate, ChatPromptTemplat
 
 from app.models.pydantic.sessions import Recording
 from pydantic_models.evaluator import SummaryEvaluationItem, SummaryEvaluations, Errors, grammatical_errors_schema, \
-    summary_evaluation_item_schema, ModelFieldNotFoundError, ErrorItem
+    summary_evaluation_item_schema, ModelFieldNotFoundError, ErrorItem, SentenceData, AudioMetrics, SyllableData
 from services.converters import Audio2TextConverter
 from static.summary_metrics import evaluation_metrics
+
+import re
 
 # init module logger
 logger = logging.getLogger(__name__)
@@ -197,6 +199,72 @@ class SchemaSummaryChainWrapper(SummaryChainWrapper, SchemaChainWrapper):
         return summary_evaluation_item
 
 
+class SentenceChainWrapper(ChainWrapper):
+    def invoke(self, **kwargs) -> Union[SentenceData, dict]:
+        llm: BaseLanguageModel = kwargs.get("llm")
+        raw_text_words: List[str] = kwargs.get("raw_text_words")
+        chain = self.prompt_template | llm | self.output_parser
+        sentence_data: SentenceData = chain.invoke({
+                                                    "raw_text_words": raw_text_words
+                                                    })
+        return sentence_data
+
+    def _create_prompt(self):
+        """Returns prompt"""
+        # The format instructions that LangChain makes. Let's look at them
+        format_instructions = self.output_parser.get_format_instructions()
+
+        evaluation_prompt_template = """
+                You are given a list comprising the words or word-sets that if stringed together in the order of their index  will yield a complete text:
+                \n{raw_text_words}\n
+                Extract the discrete sentences in the following format:
+                \n{format_instructions}\n
+                """
+
+        self.prompt_template = PromptTemplate(
+            input_variables=["raw_text_words"],
+            template=evaluation_prompt_template,
+            partial_variables={"format_instructions": format_instructions}
+        )
+
+    def _create_output_parser(self):
+        """Creates pydantic model output parser with SummaryEvaluationItem"""
+        # The parser that will look for the LLM output in my schema and return it back to me
+        self.output_parser = PydanticOutputParser(pydantic_object=SentenceData)
+
+
+class SyllablesChainWrapper(ChainWrapper):
+    def invoke(self, **kwargs) -> Union[SyllableData, dict]:
+        llm: BaseLanguageModel = kwargs.get("llm")
+        text: str = kwargs.get("text")
+        chain = self.prompt_template | llm | self.output_parser
+        syllables_data: SyllableData = chain.invoke({"text": text})
+        return syllables_data
+
+    def _create_prompt(self):
+        """Returns prompt"""
+        # The format instructions that LangChain makes. Let's look at them
+        format_instructions = self.output_parser.get_format_instructions()
+
+        evaluation_prompt_template = """
+                You are given the following text.
+                \n{text}\n
+                Extract the syllables of the text in the following format:
+                \n{format_instructions}\n
+                """
+
+        self.prompt_template = PromptTemplate(
+            input_variables=["text"],
+            template=evaluation_prompt_template,
+            partial_variables={"format_instructions": format_instructions}
+        )
+
+    def _create_output_parser(self):
+        """Creates pydantic model output parser with SummaryEvaluationItem"""
+        # The parser that will look for the LLM output in my schema and return it back to me
+        self.output_parser = PydanticOutputParser(pydantic_object=SyllableData)
+
+
 class TextEvaluator(ABC):
     def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
         self._audio2text_converter: Audio2TextConverter = None
@@ -266,3 +334,77 @@ class SummaryEvaluator(TextEvaluator):
 
     def set_document(self, document: str):
         self._document = document
+
+
+class ReadingEvaluator(TextEvaluator):
+    def __init__(self, llm: BaseLanguageModel, chain_comps: ChainWrapper):
+        super().__init__(llm, chain_comps)
+
+    def evaluate(self) -> AudioMetrics:
+        audio_metrics = AudioMetrics()
+        words_per_sec_sum: float = 0.0
+        syllables_per_sec_sum: float = 0.0
+        pause_duration_sum: float = 0.0
+        word_count_sum: int = 0
+        end_time: float = 0.0  # set initial end_time
+        for text_bit, time_frame in self._recording.texts_timestamps.items():
+            # -----calculate values for avg_pause_duration-----
+            # current start_time
+            start_time = time_frame[0]
+            # duration equal the difference between current start_time and previous end_time
+            pause_duration = start_time - end_time
+            pause_duration_sum = pause_duration_sum + pause_duration
+            # current end_time
+            end_time = time_frame[1]
+            # -----calculate values for avg_words_per_sec-----
+            # Use regex to find words (ignoring punctuation)
+            words = re.findall(r'\b\w+\b', text_bit)
+            word_count = len(words)
+            time_diff = end_time - start_time
+            words_per_sec = word_count / time_diff
+            word_count_sum = word_count_sum + word_count
+            words_per_sec_sum = words_per_sec_sum + words_per_sec
+            # -----calculate values for avg_syllables_per_sec-----
+            syllable_data: SyllableData = self._chain_comps.invoke(text=text_bit, llm=self._llm)
+            syllables_per_sec = syllable_data.count / time_diff
+            syllables_per_sec_sum = syllables_per_sec_sum + syllables_per_sec
+
+        text_bits_count = len(self._recording.texts_timestamps.keys())
+        audio_metrics.avg_pause_duration = pause_duration_sum / (text_bits_count - 1)
+        audio_metrics.pause_frequency_per_word_count = (text_bits_count - 1) / word_count_sum
+        audio_metrics.avg_words_per_sec = words_per_sec_sum / text_bits_count
+        audio_metrics.avg_syllables_per_sec = syllables_per_sec_sum / text_bits_count
+
+        return audio_metrics
+
+    def transform_to_sentence_based_evaluation(self):
+        # TODO: this should be responsibility of a factory
+        self.set_chain_comps(SentenceChainWrapper())
+        # TODO chain SentenceChainWrapper nor SentenceData support sentence ending in the middle
+        #  of the string (key in self._recording.texts_timestamps), as opposed to ending at the end of the string
+        sentence_data: SentenceData = self._chain_comps.invoke(raw_text_words=list(self._recording.texts_timestamps.keys()),
+                                                               llm=self._llm)
+        sentence_start_time = 0.0
+        current_sentence_idx = 0
+        idx = 0
+        sentence_based_texts_timestamps: Dict[str, Tuple[float, float]] = {}
+        for text_bit, time_frame in self._recording.texts_timestamps.items():
+            # -----calculate values for avg_words_per_sec_per_sentence-----
+            current_sentence = sentence_data.sentences[current_sentence_idx]
+            # get start indices of current and next sentence
+            current_sentence_start_idx = sentence_data.sentence_start_indices[current_sentence_idx]
+            if len(sentence_data.sentence_start_indices)-1 > current_sentence_idx:
+                next_sentence_start_idx = sentence_data.sentence_start_indices[current_sentence_idx + 1]
+            else:
+                # there is not next sentence start index, so it's equal the size
+                next_sentence_start_idx = len(self._recording.texts_timestamps.items())
+            if idx == current_sentence_start_idx:
+                sentence_start_time = time_frame[0]
+            if idx == next_sentence_start_idx-1:
+                sentence_end_time = time_frame[1]
+                sentence_based_texts_timestamps.update({current_sentence:
+                                                        (sentence_start_time, sentence_end_time)})
+                current_sentence_idx += 1
+            idx += 1
+
+        self._recording.texts_timestamps = sentence_based_texts_timestamps

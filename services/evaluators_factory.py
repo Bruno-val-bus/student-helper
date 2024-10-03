@@ -9,7 +9,8 @@ from static.summary_example_text import afrikaans_OPENAI_doc
 
 from app.models.pydantic.sessions import RecordingType
 from .evaluators import TextEvaluator, GrammaticalEvaluator, GrammaticalErrorsChainWrapper, SummaryChainWrapper, \
-    SummaryEvaluator, SchemaSummaryChainWrapper, ChainWrapper, SchemaGrammaticalErrorsChainWrapper
+    SummaryEvaluator, SchemaSummaryChainWrapper, ChainWrapper, SchemaGrammaticalErrorsChainWrapper, ReadingEvaluator, \
+    SyllablesChainWrapper
 
 from configs.configurator import Config
 
@@ -50,6 +51,17 @@ class TextEvaluatorFactory:
                     raise NotImplementedError(f"Output parser type {output_parser_type} has not been implemented yet")
 
                 processor: GrammaticalEvaluator = GrammaticalEvaluator(llm, chain_components)
+            elif self._recording_type == RecordingType.READING_OUT_LOUD:
+                chain_components: ChainWrapper
+                if output_parser_type == "model":
+                    chain_components = SyllablesChainWrapper()
+                elif output_parser_type == "schema":
+                    # TODO implement SchemaReadingChainWrapper
+                    raise NotImplementedError(f"Output parser type {output_parser_type} has not been implemented yet")
+                else:
+                    raise NotImplementedError(f"Output parser type {output_parser_type} has not been implemented yet")
+
+                processor: ReadingEvaluator = ReadingEvaluator(llm, chain_components)
             else:
                 raise NotImplementedError(f"Recording type {self._recording_type} has not been implemented yet")
             return processor

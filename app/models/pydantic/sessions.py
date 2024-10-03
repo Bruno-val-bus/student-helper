@@ -6,6 +6,7 @@ class RecordingType:
     COMPREHENSION: str = "COMPREHENSION"
     LANGUAGE_PRODUCTION: str = "LANGUAGE_PRODUCTION"
     PRESENTATION: str = "PRESENTATION"
+    READING_OUT_LOUD: str = "READING_OUT_LOUD"
 
 
 class RecordingStatus(BaseModel):

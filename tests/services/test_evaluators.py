@@ -9,7 +9,7 @@ import pytest
 from app.models.pydantic.sessions import RecordingType, Recording
 from pydantic_models.evaluator import Errors, SummaryEvaluations, ErrorItem, SummaryEvaluationItem
 from services.evaluators_factory import TextEvaluatorFactory
-from services.evaluators import SummaryEvaluator, GrammaticalEvaluator, TextEvaluator
+from services.evaluators import SummaryEvaluator, GrammaticalEvaluator, TextEvaluator, ReadingEvaluator
 from static.summary_example_text import afrikaans_OPENAI_summary_good, afrikaans_OPENAI_summary_bad
 
 CONFIG_FILE_PATH = os.path.join(os.getcwd(), "configs", "config.yaml")
@@ -85,6 +85,13 @@ def summary_evaluator(config: Config) -> Union[SummaryEvaluator, TextEvaluator]:
     factory = TextEvaluatorFactory(RecordingType.COMPREHENSION, config)
     summary_evaluator = factory.get_evaluator()
     return summary_evaluator
+
+
+@pytest.fixture(scope="session")
+def reading_evaluator(config: Config) -> Union[ReadingEvaluator, TextEvaluator]:
+    factory = TextEvaluatorFactory(RecordingType.READING_OUT_LOUD, config)
+    reading_evaluator = factory.get_evaluator()
+    return reading_evaluator
 
 
 @pytest.mark.parametrize("recording, error_item_reference", param_sets, ids=param_sets_ids)
@@ -163,3 +170,56 @@ def test_summary_evaluate(summary_evaluator: SummaryEvaluator, summary: str, ref
         assert summary_eval_item.score <= max_score, (
             f"Score of {summary_eval_item.score} for metric {summary_eval_item.metric} "
             f"is above maximum {str(max_score)}")
+
+
+recording_high_resolution = Recording()
+recording_high_resolution.texts_timestamps = {
+    # First sentence
+    "artificial": (0.0, 0.7),
+    "intelligence": (0.8, 1.5),
+    "is": (1.6, 1.8),
+    "revolutionizing": (2.0, 2.8),
+    "technology": (2.9, 3.5),
+    # Pause to start a new thought
+    "however": (5.0, 5.5),  # After a pause
+    "we": (5.6, 5.8),
+    "must": (5.9, 6.1),
+    "approach": (6.2, 6.7),
+    "it": (6.8, 7.0),
+    "carefully": (7.2, 7.9),
+    # Pause to start a new thought
+    "on": (8.0, 8.2),  # After a pause
+    "the": (8.2, 8.3),
+    "other": (8.3, 8.4),
+    "hand": (8.5, 8.6),
+    "it has": (8.7, 8.8),
+    "a lot": (9.0, 9.1),
+    "of potential": (9.1, 9.2)
+}
+recording_low_resolution = Recording()
+recording_low_resolution.texts_timestamps = {
+    # First sentence, lower resolution grouping
+    "In the world": (0.0, 1.0),  # Grouping multiple words
+    "of technology": (1.1, 1.9),  # Grouping multiple words
+    "things": (2.0, 2.2),  # Single word
+    "change quickly": (2.3, 3.0),  # Grouping two words
+    # Pause for emphasis
+    "But": (4.0, 4.3),  # Single word with slight pause after
+    # Second sentence
+    "some challenges": (4.4, 5.1),  # Grouping two words
+    "remain": (5.2, 5.5),  # Single word
+    "constant": (5.6, 6.0)  # Single word
+}
+param_sets_reading_eval = [
+    recording_high_resolution,
+    recording_low_resolution
+]
+param_sets_ids_reading_eval = ["High resolution transcribed recording",
+                               "Low resolution transcribed recording"]
+
+
+@pytest.mark.parametrize("recording", param_sets_reading_eval, ids=param_sets_ids_reading_eval)
+def test_reading_evaluate(reading_evaluator: ReadingEvaluator, recording: Recording):
+    reading_evaluator.set_recording(recording)
+    _ = reading_evaluator.evaluate()
+

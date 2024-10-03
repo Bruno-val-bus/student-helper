@@ -4,6 +4,7 @@ app:
 llm_parser: # "schema" , "model"
   COMPREHENSION: "model"
   LANGUAGE_PRODUCTION: "model"
+  READING_OUT_LOUD: "model"
 
 llm:
   ONLINE_OPENAI_GPT3:
