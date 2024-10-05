@@ -1,7 +1,7 @@
 import logging
 import os
 from abc import ABC, abstractmethod
-from typing import List, Optional, Type
+from typing import List, Optional
 import re
 import torch
 import torchaudio
@@ -56,7 +56,6 @@ class PyannoteMultiFileDiarization(IDiarization):
 
     def set_device(self, device: str = "cpu"):
         self.device = device
-
 
     def set_config(self):
         """
@@ -175,9 +174,3 @@ class PyannoteMultiFileDiarization(IDiarization):
                 self.list_segmented.append(audio_segment_file_name)
 
             return self.list_segmented
-
-
-class SingleFileDiarization(IDiarization):
-
-    def diarize(self, origin_audio_file_path: str) -> List[str]:
-        pass

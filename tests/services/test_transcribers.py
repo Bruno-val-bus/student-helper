@@ -12,8 +12,9 @@ logger = logging.getLogger(__name__)
 recording_child1 = Recording()
 recording_child1.audio_file_path = "../../static/audio/student_audio/blinklappies_06_08_2024/audiosegment_SPEAKER_01_44260_76086.wav"
 
+recording_convert = "../../static/audio/student_audio/blinklappies_06_08_2024/01_blinklappies_06_08_2024.mp3"
 recording_baseline = Recording()
-recording_baseline.audio_file_path = "../../static/audio/student_audio/blinklappies_baseline_audio/blinklappies_baseline_audio.opus"
+recording_baseline.audio_file_path = "../../static/audio/student_audio/blinklappies_baseline_audio/blinklappies_baseline_audio.wav"
 
 vulavula_ideal_transcription = [("So in 1 van die 2 maande raak ek 11 jaar oud oumamalan.se toe ouma so groot was, het hy al "
                               "op die plaas gewerk. Oupa het nie ge geboorte geboorte met skool of wiskunde nie. Ek weet "
@@ -66,7 +67,7 @@ class TestVulaVula:
 
         return transcriber
 
-    @pytest.mark.parametrize("audio_input,expected", [(recording_child1.audio_file_path, ideal_whisper_segments),
+    @pytest.mark.parametrize("audio_input,expected", [(recording_child1.audio_file_path, vulavula_ideal_transcription),
                                                       (recording_baseline.audio_file_path, recording_baseline_ideal_transcription)])
     def test_vulavula_accuracy(self, vulavula_transcriber, audio_input, expected):
         """

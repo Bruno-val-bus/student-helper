@@ -161,15 +161,15 @@ class VulaVulaTranscription(ITranscription):
 
                 upload_id, transcription_result = self.vulavula_client.transcribe(audio_file_path,
                                                                                   language_code=self.language)
-                logger.info(f"Starting Transcription for {self.setup_name}",
+                logger.info(f"Starting transcription for {audio_file_path}",
                             transcription_result)  # A success message
                 logger.info(f"Using Model: {self.model_name}")
 
                 while self.vulavula_client.get_transcribed_text(upload_id)['message'] == "Item has not been processed.":
                     time.sleep(30)
-                    logger.info(f"Processing Transcription for {self.setup_name}...")
+                    logger.info(f"Processing Transcription for {audio_file_path}...")
 
-                logger.info(f"Transcription Success for {self.setup_name}",
+                logger.info(f"Transcription Success for {audio_file_path}",
                             transcription_result)  # A success message
 
                 transcribed_text = self.vulavula_client.get_transcribed_text(upload_id)
@@ -185,7 +185,7 @@ class VulaVulaTranscription(ITranscription):
                     start_time = float(match.group(1))
                     end_time = float(match.group(2))
                     result = (start_time, end_time)
-                    self.transcribed_audio_timestamps[transcribed_text] = result
+                    self.transcribed_audio_timestamps[transcribed_text['text']] = result
                 else:
                     audio = AudioSegment.from_file(audio_file_path)
                     # timestamps present the length of the audio file
